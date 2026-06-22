@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pujari Connect · Admin</title>
+<style>
+  :root {
+    --bg: #0f1116;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #8b93a1;
+    --accent: #f0883e;
+    --accent-2: #ffb072;
+    --danger: #e5484d;
+    --ok: #30a46c;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea {
+    font-family: inherit;
+    font-size: 14px;
+    width: 100%;
+    padding: 9px 11px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { min-height: 84px; resize: vertical; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .btn {
+    padding: 9px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel-2);
+    color: var(--text);
+    font-weight: 500;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #1a1206; font-weight: 600; }
+  .btn-primary:hover { background: var(--accent-2); }
+  .btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: rgba(229,72,77,.12); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .hidden { display: none !important; }
+
+  /* ── Login ── */
+  #login {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  }
+  .login-card {
+    width: 360px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 32px;
+  }
+  .login-card h1 { margin: 0 0 4px; font-size: 20px; }
+  .login-card p { margin: 0 0 24px; color: var(--muted); font-size: 13px; }
+  .login-card .field { margin-bottom: 16px; }
+  .login-error { color: var(--danger); font-size: 13px; margin-top: 12px; min-height: 18px; }
+
+  /* ── App shell ── */
+  #app { display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
+  .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 20px 12px; display: flex; flex-direction: column; }
+  .brand { font-size: 16px; font-weight: 700; padding: 6px 12px 18px; }
+  .brand span { color: var(--accent); }
+  .nav-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 12px; border-radius: 8px; color: var(--muted);
+    cursor: pointer; margin-bottom: 2px; user-select: none;
+  }
+  .nav-item:hover { background: var(--panel-2); color: var(--text); }
+  .nav-item.active { background: var(--accent); color: #1a1206; font-weight: 600; }
+  .nav-item .count { font-size: 11px; opacity: .8; }
+  .nav-spacer { flex: 1; }
+  .logout { color: var(--danger); }
+
+  .main { padding: 24px 28px; overflow: auto; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 16px; }
+  .topbar h2 { margin: 0; font-size: 20px; }
+  .topbar .tools { display: flex; gap: 10px; align-items: center; }
+  .search { width: 220px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: var(--radius); overflow: hidden; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--border); }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--panel-2); }
+  tr:last-child td { border-bottom: none; }
+  td.actions { text-align: right; white-space: nowrap; }
+  .pill { padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; display: inline-block; }
+  .pill.on { background: rgba(48,164,108,.18); color: #5cd99a; }
+  .pill.off { background: rgba(139,147,161,.18); color: var(--muted); }
+  .cell-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--muted); }
+  .empty { text-align: center; color: var(--muted); padding: 48px; }
+
+  .pagination { display: flex; align-items: center; gap: 12px; margin-top: 16px; color: var(--muted); }
+
+  /* ── Dashboard ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+  .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; cursor: pointer; }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-card .n { font-size: 28px; font-weight: 700; }
+  .stat-card .l { color: var(--muted); margin-top: 4px; }
+
+  /* ── Modal ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: flex-start; justify-content: center; padding: 48px 16px; overflow: auto; z-index: 50; }
+  .modal { width: 540px; max-width: 100%; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--border); }
+  .modal-head h3 { margin: 0; font-size: 17px; }
+  .modal-body { padding: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .modal-body .full { grid-column: 1 / -1; }
+  .modal-foot { padding: 16px 22px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .modal-foot .right { display: flex; gap: 10px; }
+  .form-error { color: var(--danger); font-size: 13px; min-height: 18px; }
+  .check-row { display: flex; align-items: center; gap: 8px; }
+  .check-row input { width: auto; }
+  .x { background: transparent; border: none; color: var(--muted); font-size: 20px; line-height: 1; }
+
+  /* ── Toast ── */
+  #toast { position: fixed; bottom: 24px; right: 24px; background: var(--panel-2); border: 1px solid var(--border); border-left: 3px solid var(--ok); padding: 12px 18px; border-radius: 8px; z-index: 100; transition: opacity .25s; }
+  #toast.err { border-left-color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- ── Login ── -->
+<div id="login">
+  <form class="login-card" id="login-form">
+    <h1>Pujari<span style="color:var(--accent)">Connect</span> Admin</h1>
+    <p>Sign in to manage the platform.</p>
+    <div class="field">
+      <label for="username">Username</label>
+      <input id="username" autocomplete="username" autofocus />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" />
+    </div>
+    <button class="btn btn-primary" type="submit" style="width:100%">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </form>
+</div>
+
+<!-- ── App ── -->
+<div id="app" class="hidden">
+  <aside class="sidebar">
+    <div class="brand">Pujari<span>Connect</span></div>
+    <div class="nav-item" data-view="dashboard">Dashboard</div>
+    <nav id="nav"></nav>
+    <div class="nav-spacer"></div>
+    <div class="nav-item logout" id="logout">Sign Out</div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+
+<div id="toast" class="hidden"></div>
+
+<script>
+const API = '/api/admin';
+let token = localStorage.getItem('pc_admin_token') || '';
+let RESOURCES = [];
+let current = { key: null, page: 1, totalPages: 1, q: '' };
+
+// ── HTTP helper ──
+async function api(path, opts = {}) {
+  const res = await fetch(API + path, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: 'Bearer ' + token } : {}),
+      ...(opts.headers || {}),
+    },
+  });
+  let body = {};
+  try { body = await res.json(); } catch {}
+  if (res.status === 401) { logout(); throw new Error('Session expired. Please sign in again.'); }
+  if (!res.ok || body.success === false) {
+    throw new Error(body.message || body.error || ('Request failed (' + res.status + ')'));
+  }
+  return body;
+}
+
+function toast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = isErr ? 'err' : '';
+  setTimeout(() => t.classList.add('hidden'), 2600);
+}
+
+function esc(v) {
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ── Auth ──
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  try {
+    const body = await api('/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+      }),
+    });
+    token = body.data.token;
+    localStorage.setItem('pc_admin_token', token);
+    await boot();
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+});
+
+function logout() {
+  token = '';
+  localStorage.removeItem('pc_admin_token');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login').classList.remove('hidden');
+}
+document.getElementById('logout').addEventListener('click', logout);
+
+// ── Boot ──
+async function boot() {
+  const body = await api('/resources');
+  RESOURCES = body.data;
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  renderNav();
+  showDashboard();
+}
+
+function resource(key) { return RESOURCES.find((r) => r.key === key); }
+
+function renderNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = RESOURCES.map((r) =>
+    `<div class="nav-item" data-key="${r.key}"><span>${esc(r.label)}</span><span class="count" id="count-${r.key}"></span></div>`
+  ).join('');
+  nav.querySelectorAll('.nav-item').forEach((el) =>
+    el.addEventListener('click', () => openResource(el.dataset.key))
+  );
+  document.querySelector('.nav-item[data-view="dashboard"]').addEventListener('click', showDashboard);
+}
+
+function setActive(key) {
+  document.querySelectorAll('.sidebar .nav-item').forEach((el) => el.classList.remove('active'));
+  if (key) {
+    const el = document.querySelector(`.nav-item[data-key="${key}"]`);
+    if (el) el.classList.add('active');
+  } else {
+    document.querySelector('.nav-item[data-view="dashboard"]').classList.add('active');
+  }
+}
+
+// ── Dashboard ──
+async function showDashboard() {
+  setActive(null);
+  current.key = null;
+  const main = document.getElementById('main');
+  main.innerHTML = `<div class="topbar"><h2>Dashboard</h2></div><div class="stats-grid" id="stats">Loading…</div>`;
+  try {
+    const body = await api('/stats');
+    document.getElementById('stats').innerHTML = body.data.map((s) =>
+      `<div class="stat-card" data-key="${s.key}"><div class="n">${s.count}</div><div class="l">${esc(s.label)}</div></div>`
+    ).join('');
+    document.querySelectorAll('.stat-card').forEach((el) =>
+      el.addEventListener('click', () => openResource(el.dataset.key))
+    );
+    body.data.forEach((s) => { const c = document.getElementById('count-' + s.key); if (c) c.textContent = s.count; });
+  } catch (err) { toast(err.message, true); }
+}
+
+// ── List view ──
+async function openResource(key) {
+  current = { key, page: 1, totalPages: 1, q: '' };
+  setActive(key);
+  await loadList();
+}
+
+async function loadList() {
+  const r = resource(current.key);
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="topbar">
+      <h2>${esc(r.label)}</h2>
+      <div class="tools">
+        ${r.fields.some((f) => f.name === r.searchField) ? '' : ''}
+        <input class="search" id="search" placeholder="Search…" value="${esc(current.q)}" />
+        <button class="btn btn-primary" id="new-btn">+ New</button>
+      </div>
+    </div>
+    <div id="table-wrap" class="empty">Loading…</div>
+    <div class="pagination hidden" id="pagination">
+      <button class="btn btn-sm" id="prev">Prev</button>
+      <span id="page-info"></span>
+      <button class="btn btn-sm" id="next">Next</button>
+    </div>`;
+
+  document.getElementById('new-btn').addEventListener('click', () => openForm(null));
+  const search = document.getElementById('search');
+  let timer;
+  search.addEventListener('input', () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { current.q = search.value.trim(); current.page = 1; fetchRows(); }, 300);
+  });
+  document.getElementById('prev').addEventListener('click', () => { if (current.page > 1) { current.page--; fetchRows(); } });
+  document.getElementById('next').addEventListener('click', () => { if (current.page < current.totalPages) { current.page++; fetchRows(); } });
+
+  await fetchRows();
+}
+
+async function fetchRows() {
+  const r = resource(current.key);
+  const wrap = document.getElementById('table-wrap');
+  try {
+    const params = new URLSearchParams({ page: current.page, limit: 20 });
+    if (current.q) params.set('q', current.q);
+    const body = await api(`/${current.key}?` + params.toString());
+    current.totalPages = body.totalPages || 1;
+    renderTable(r, body.data);
+    const pag = document.getElementById('pagination');
+    pag.classList.toggle('hidden', current.totalPages <= 1);
+    document.getElementById('page-info').textContent = `Page ${body.page} of ${current.totalPages} · ${body.total} total`;
+  } catch (err) {
+    wrap.innerHTML = `<div class="empty">${esc(err.message)}</div>`;
+  }
+}
+
+function renderCell(field, value) {
+  if (field.type === 'boolean') {
+    return value ? '<span class="pill on">Yes</span>' : '<span class="pill off">No</span>';
+  }
+  if (field.type === 'datetime' && value) {
+    return esc(new Date(value).toLocaleString());
+  }
+  let s = value === null || value === undefined ? '' : String(value);
+  if (s.length > 48) s = s.slice(0, 48) + '…';
+  return esc(s);
+}
+
+function renderTable(r, rows) {
+  const cols = r.fields.filter((f) => f.listVisible);
+  const wrap = document.getElementById('table-wrap');
+  if (!rows.length) { wrap.className = 'empty'; wrap.textContent = 'No records yet.'; return; }
+  wrap.className = '';
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>ID</th>
+        ${cols.map((c) => `<th>${esc(c.label)}</th>`).join('')}
+        <th></th>
+      </tr></thead>
+      <tbody>
+        ${rows.map((row) => `
+          <tr>
+            <td class="cell-id">${esc(String(row.id).slice(0, 8))}…</td>
+            ${cols.map((c) => `<td>${renderCell(c, row[c.name])}</td>`).join('')}
+            <td class="actions">
+              <button class="btn btn-sm" data-edit="${esc(row.id)}">Edit</button>
+              <button class="btn btn-sm btn-danger" data-del="${esc(row.id)}">Delete</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+  wrap.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => openForm(b.dataset.edit)));
+  wrap.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => removeRow(b.dataset.del)));
+}
+
+async function removeRow(id) {
+  if (!confirm('Delete this record? This cannot be undone.')) return;
+  try {
+    await api(`/${current.key}/${id}`, { method: 'DELETE' });
+    toast('Deleted');
+    await fetchRows();
+  } catch (err) { toast(err.message, true); }
+}
+
+// ── Create / Edit form ──
+async function openForm(id) {
+  const r = resource(current.key);
+  let data = {};
+  if (id) {
+    try { data = (await api(`/${current.key}/${id}`)).data; }
+    catch (err) { toast(err.message, true); return; }
+  }
+
+  const fieldHtml = r.fields.map((f) => {
+    const v = data[f.name];
+    const full = f.type === 'text' ? ' full' : '';
+    let input;
+    if (f.type === 'boolean') {
+      input = `<div class="check-row"><input type="checkbox" id="f-${f.name}" ${v ? 'checked' : ''} /><span>${esc(f.label)}</span></div>`;
+      return `<div class="field${full}"><label>&nbsp;</label>${input}</div>`;
+    } else if (f.type === 'text') {
+      input = `<textarea id="f-${f.name}">${esc(v)}</textarea>`;
+    } else if (f.type === 'select') {
+      input = `<select id="f-${f.name}">${(f.options || []).map((o) =>
+        `<option value="${esc(o)}" ${String(v) === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+    } else if (f.type === 'number') {
+      input = `<input type="number" step="any" id="f-${f.name}" value="${v === null || v === undefined ? '' : esc(v)}" />`;
+    } else if (f.type === 'datetime') {
+      const dv = v ? new Date(v).toISOString().slice(0, 16) : '';
+      input = `<input type="datetime-local" id="f-${f.name}" value="${esc(dv)}" />`;
+    } else {
+      input = `<input id="f-${f.name}" value="${esc(v)}" />`;
+    }
+    const req = f.required ? ' <span style="color:var(--accent)">*</span>' : '';
+    const help = f.help ? `<div style="color:var(--muted);font-size:11px;margin-top:4px">${esc(f.help)}</div>` : '';
+    return `<div class="field${full}"><label>${esc(f.label)}${req}</label>${input}${help}</div>`;
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-head">
+        <h3>${id ? 'Edit' : 'New'} ${esc(r.label.replace(/s$/, ''))}</h3>
+        <button class="x" id="close-x">&times;</button>
+      </div>
+      <div class="modal-body">${fieldHtml}</div>
+      <div class="modal-foot">
+        <div class="form-error" id="form-error"></div>
+        <div class="right">
+          <button class="btn" id="cancel">Cancel</button>
+          <button class="btn btn-primary" id="save">${id ? 'Save Changes' : 'Create'}</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector('#close-x').addEventListener('click', close);
+  overlay.querySelector('#cancel').addEventListener('click', close);
+
+  overlay.querySelector('#save').addEventListener('click', async () => {
+    const payload = {};
+    for (const f of r.fields) {
+      const el = overlay.querySelector('#f-' + f.name);
+      if (!el) continue;
+      payload[f.name] = f.type === 'boolean' ? el.checked : el.value;
+    }
+    const errEl = overlay.querySelector('#form-error');
+    errEl.textContent = '';
+    try {
+      if (id) await api(`/${current.key}/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      else await api(`/${current.key}`, { method: 'POST', body: JSON.stringify(payload) });
+      close();
+      toast(id ? 'Saved' : 'Created');
+      await fetchRows();
+      const c = document.getElementById('count-' + current.key);
+      if (c && !id) c.textContent = (parseInt(c.textContent || '0', 10) + 1);
+    } catch (err) {
+      errEl.textContent = err.message;
+    }
+  });
+}
+
+// ── Start ──
+if (token) {
+  boot().catch(() => logout());
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  phoneNumber   String    @unique
+  googleId      String?   @unique
+  name          String
+  email         String?
+  profilePicUrl String?
+  role          String    @default("USER")
+  dateOfBirth   String?
+  gender        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  addresses     Address[]
+  bookings      Booking[]
+  wishlists     Wishlist[]
+}
+
+model Puja {
+  id          String     @id @default(cuid())
+  name        String
+  description String
+  aboutPuja   String
+  type        String     // ONLINE, OFFLINE, BOTH
+  duration    Int
+  dateTime    String
+  basePrice   Float
+  imageUrl    String?
+  category    String     // HOME, PERSONAL, FESTIVAL, TEMPLE, ANCESTRAL
+  location    String
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  packages    Package[]
+  faqs        FAQ[]
+  kitItems    KitItem[]
+  offerings   Offering[]
+  bookings    Booking[]
+  wishlists   Wishlist[]
+}
+
+model Pujari {
+  id             String    @id @default(cuid())
+  name           String
+  experience     Int
+  ethnicity      String
+  specialization String
+  phone          String
+  email          String
+  location       String
+  rating         Float     @default(0)
+  totalBookings  Int       @default(0)
+  hourlyRate     Float
+  bio            String
+  languages      String
+  imageUrl       String?
+  isVerified     Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  bookings       Booking[]
+}
+
+model Package {
+  id        String          @id @default(cuid())
+  pujaId    String
+  title     String
+  price     Float
+  coupon    String?
+  isPopular Boolean         @default(false)
+  puja      Puja            @relation(fields: [pujaId], references: [id], onDelete: Cascade)
+  details   PackageDetail[]
+  bookings  Booking[]
+}
+
+model PackageDetail {
+  id        String  @id @default(cuid())
+  packageId String
+  heading   String
+  label     String
+  items     String  // JSON string
+  package   Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+}
+
+model FAQ {
+  id       String @id @default(cuid())
+  pujaId   String
+  question String
+  answer   String
+  puja     Puja   @relation(fields: [pujaId], references: [id], onDelete: Cascade)
+}
+
+model KitItem {
+  id         String           @id @default(cuid())
+  pujaId     String
+  name       String
+  quantity   Int
+  price      Float
+  isOptional Boolean          @default(false)
+  category   String
+  puja       Puja             @relation(fields: [pujaId], references: [id], onDelete: Cascade)
+  bookings   BookingKitItem[]
+}
+
+model Offering {
+  id       String            @id @default(cuid())
+  pujaId   String
+  name     String
+  price    Float
+  puja     Puja              @relation(fields: [pujaId], references: [id], onDelete: Cascade)
+  bookings BookingOffering[]
+}
+
+model SamagriItem {
+  id          String  @id @default(cuid())
+  name        String
+  description String
+  category    String
+  price       Float
+  unit        String
+  imageUrl    String?
+  inStock     Boolean @default(true)
+}
+
+model Address {
+  id        String    @id @default(cuid())
+  userId    String
+  fullName  String
+  phone     String
+  pinCode   String
+  state     String
+  city      String
+  flatHouse String
+  area      String
+  landmark  String?
+  isDefault Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+}
+
+model Booking {
+  id            String           @id @default(cuid())
+  userId        String
+  pujaId        String
+  pujariId      String?
+  packageId     String?
+  status        String           @default("PENDING")
+  bookingDate   DateTime
+  totalAmount   Float
+  paymentId     String?
+  paymentStatus String           @default("PENDING")
+  couponCode    String?
+  discount      Float            @default(0)
+  addressId     String?
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  user          User             @relation(fields: [userId], references: [id])
+  puja          Puja             @relation(fields: [pujaId], references: [id])
+  pujari        Pujari?          @relation(fields: [pujariId], references: [id])
+  package       Package?         @relation(fields: [packageId], references: [id])
+  address       Address?         @relation(fields: [addressId], references: [id])
+  offerings     BookingOffering[]
+  kitItems      BookingKitItem[]
+}
+
+model BookingOffering {
+  id         String   @id @default(cuid())
+  bookingId  String
+  offeringId String
+  price      Float
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  offering   Offering @relation(fields: [offeringId], references: [id])
+}
+
+model BookingKitItem {
+  id        String  @id @default(cuid())
+  bookingId String
+  kitItemId String
+  quantity  Int
+  price     Float
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  kitItem   KitItem @relation(fields: [kitItemId], references: [id])
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  pujaId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  puja      Puja     @relation(fields: [pujaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pujaId])
+}
