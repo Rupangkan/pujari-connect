@@ -1,16 +1,15 @@
 /**
- * Pujari Detail Screen — Full pujari profile with booking options
- * Ported from MyPandit's PujariDetailActivity.kt
+ * Pujari Detail Screen — full pujari profile with booking options. Light theme.
  */
 import React, { useState } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet, Pressable,
-} from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { Pujari } from '@/types';
 
 const PUJARI_DATA: Record<string, Pujari> = {
@@ -32,31 +31,37 @@ function StarRating({ rating }: { rating: number }) {
   return (
     <View style={starStyles.row}>
       {[1, 2, 3, 4, 5].map(i => (
-        <Text key={i} style={i <= Math.round(rating) ? starStyles.filled : starStyles.empty}>★</Text>
+        <Icon key={i} name={i <= Math.round(rating) ? 'star' : 'star-outline'} size={15} color={colors.starFilled} />
       ))}
       <Text style={starStyles.label}> {rating.toFixed(1)}</Text>
     </View>
   );
 }
 const starStyles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center' },
-  filled: { fontSize: 16, color: colors.starFilled },
-  empty: { fontSize: 16, color: colors.starEmpty },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   label: { ...typography.labelMedium, color: colors.textSecondary, marginLeft: 4 },
 });
 
 export default function PujariDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
   const pujari = PUJARI_DATA[id || ''] || DEFAULT_PUJARI;
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
 
+  const details: { icon: IconName; label: string; value: string }[] = [
+    { icon: 'location-outline', label: 'Location', value: pujari.location },
+    { icon: 'language-outline', label: 'Languages', value: pujari.languages },
+    { icon: 'call-outline', label: 'Contact', value: pujari.phone },
+    { icon: 'mail-outline', label: 'Email', value: pujari.email },
+  ];
+
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Hero */}
-        <LinearGradient colors={['#2D1408', '#1A0A00', colors.background]} style={styles.hero}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backIcon}>←</Text>
+        <LinearGradient colors={colors.gradientAarti} style={[styles.hero, { paddingTop: insets.top + spacing.huge }]}>
+          <Pressable onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + spacing.sm }]} hitSlop={8}>
+            <Icon name="arrow-back" size={22} color={colors.maroon} />
           </Pressable>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
@@ -64,27 +69,26 @@ export default function PujariDetailScreen() {
             </View>
             {pujari.isVerified && (
               <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedText}>✓ Verified</Text>
+                <Icon name="checkmark-circle" size={13} color={colors.success} />
+                <Text style={styles.verifiedText}>Verified</Text>
               </View>
             )}
           </View>
           <Text style={styles.name}>{pujari.name}</Text>
           <Text style={styles.specialization}>{pujari.specialization}</Text>
           <StarRating rating={pujari.rating} />
-
-          {/* Ethnicity badge */}
           <View style={styles.ethnicityBadge}>
             <Text style={styles.ethnicityText}>{pujari.ethnicity} Tradition</Text>
           </View>
         </LinearGradient>
 
-        {/* Stats row */}
-        <Animated.View entering={FadeInDown.delay(200)} style={styles.statsRow}>
+        {/* Stats */}
+        <Animated.View entering={FadeInDown.delay(150)} style={styles.statsRow}>
           {[
             { label: 'Experience', value: `${pujari.experience} yrs` },
-            { label: 'Bookings', value: pujari.totalBookings.toLocaleString() },
+            { label: 'Bookings', value: pujari.totalBookings.toLocaleString('en-IN') },
             { label: 'Rating', value: pujari.rating.toFixed(1) },
-            { label: 'Rate/hr', value: `₹${pujari.hourlyRate.toLocaleString()}` },
+            { label: 'Rate/hr', value: `₹${pujari.hourlyRate.toLocaleString('en-IN')}` },
           ].map((stat, i) => (
             <View key={i} style={styles.statItem}>
               <Text style={styles.statValue}>{stat.value}</Text>
@@ -94,21 +98,14 @@ export default function PujariDetailScreen() {
         </Animated.View>
 
         <View style={styles.body}>
-          {/* About */}
           <Text style={styles.sectionTitle}>About</Text>
           <Text style={styles.bio}>{pujari.bio}</Text>
 
-          {/* Details grid */}
           <Text style={styles.sectionTitle}>Details</Text>
           <View style={styles.detailsGrid}>
-            {[
-              { icon: '📍', label: 'Location', value: pujari.location },
-              { icon: '🗣️', label: 'Languages', value: pujari.languages },
-              { icon: '📞', label: 'Contact', value: pujari.phone },
-              { icon: '✉️', label: 'Email', value: pujari.email },
-            ].map((d, i) => (
+            {details.map((d, i) => (
               <View key={i} style={styles.detailItem}>
-                <Text style={styles.detailIcon}>{d.icon}</Text>
+                <View style={styles.detailIconWrap}><Icon name={d.icon} size={18} color={colors.primary} /></View>
                 <View style={styles.detailText}>
                   <Text style={styles.detailLabel}>{d.label}</Text>
                   <Text style={styles.detailValue} numberOfLines={1}>{d.value}</Text>
@@ -119,30 +116,35 @@ export default function PujariDetailScreen() {
 
           {/* Packages */}
           <Text style={styles.sectionTitle}>Select Package</Text>
-          {PACKAGES.map(pkg => (
-            <Pressable
-              key={pkg.id}
-              onPress={() => setSelectedPkg(pkg.id)}
-              style={[styles.pkgCard, selectedPkg === pkg.id && styles.pkgCardSelected]}
-            >
-              {pkg.popular && (
-                <View style={styles.popularBadge}><Text style={styles.popularText}>⭐ Most Popular</Text></View>
-              )}
-              <View style={styles.pkgHeader}>
-                <View>
-                  <Text style={styles.pkgName}>{pkg.name}</Text>
-                  <Text style={styles.pkgDuration}>⏱ {pkg.duration}</Text>
+          {PACKAGES.map(pkg => {
+            const active = selectedPkg === pkg.id;
+            return (
+              <Pressable key={pkg.id} onPress={() => setSelectedPkg(pkg.id)} style={[styles.pkgCard, active && styles.pkgCardSelected]}>
+                <View style={styles.pkgContent}>
+                  {pkg.popular && (
+                    <View style={styles.popularBadge}>
+                      <Icon name="star" size={11} color={colors.primary} />
+                      <Text style={styles.popularText}>Most Popular</Text>
+                    </View>
+                  )}
+                  <View style={styles.pkgHeader}>
+                    <Text style={styles.pkgName}>{pkg.name}</Text>
+                    <Text style={styles.pkgPrice}>₹{pkg.price.toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={styles.pkgDurationRow}>
+                    <Icon name="time-outline" size={13} color={colors.textMuted} />
+                    <Text style={styles.pkgDuration}>{pkg.duration}</Text>
+                  </View>
+                  <Text style={styles.pkgDesc}>{pkg.description}</Text>
                 </View>
-                <Text style={styles.pkgPrice}>₹{pkg.price.toLocaleString()}</Text>
-              </View>
-              <Text style={styles.pkgDesc}>{pkg.description}</Text>
-              <View style={[styles.radio, selectedPkg === pkg.id && styles.radioSelected]}>
-                {selectedPkg === pkg.id && <View style={styles.radioInner} />}
-              </View>
-            </Pressable>
-          ))}
+                <View style={[styles.radio, active && styles.radioSelected]}>
+                  {active && <View style={styles.radioInner} />}
+                </View>
+              </Pressable>
+            );
+          })}
 
-          {/* Reviews section */}
+          {/* Reviews */}
           <Text style={styles.sectionTitle}>Reviews</Text>
           {[
             { name: 'Priya S.', rating: 5, text: 'Excellent service! Very knowledgeable and performed the puja with great devotion.', date: '2 days ago' },
@@ -151,14 +153,12 @@ export default function PujariDetailScreen() {
           ].map((r, i) => (
             <View key={i} style={styles.reviewCard}>
               <View style={styles.reviewHeader}>
-                <View style={styles.reviewAvatar}>
-                  <Text style={styles.reviewAvatarText}>{r.name.charAt(0)}</Text>
-                </View>
+                <View style={styles.reviewAvatar}><Text style={styles.reviewAvatarText}>{r.name.charAt(0)}</Text></View>
                 <View style={styles.reviewMeta}>
                   <Text style={styles.reviewName}>{r.name}</Text>
                   <View style={styles.reviewRating}>
                     {Array.from({ length: r.rating }).map((_, si) => (
-                      <Text key={si} style={styles.reviewStar}>★</Text>
+                      <Icon key={si} name="star" size={11} color={colors.starFilled} />
                     ))}
                     <Text style={styles.reviewDate}> · {r.date}</Text>
                   </View>
@@ -167,33 +167,23 @@ export default function PujariDetailScreen() {
               <Text style={styles.reviewText}>{r.text}</Text>
             </View>
           ))}
-          <View style={{ height: 120 }} />
         </View>
       </ScrollView>
 
       {/* Bottom CTA */}
-      <LinearGradient
-        colors={['transparent', colors.background, colors.background]}
-        style={styles.bottomBar}
-        pointerEvents="box-none"
-      >
-        <View style={styles.ctaRow}>
-          <View>
-            <Text style={styles.ctaLabel}>
-              {selectedPkg
-                ? `₹${(PACKAGES.find(p => p.id === selectedPkg)?.price || 0).toLocaleString()}`
-                : `From ₹${pujari.hourlyRate.toLocaleString()}/hr`}
-            </Text>
-            <Text style={styles.ctaSublabel}>{selectedPkg ? 'Package selected' : 'Select a package above'}</Text>
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]}
-            onPress={() => router.push(`/puja/1`)}
-          >
-            <Text style={styles.bookBtnText}>Book Now 🙏</Text>
-          </Pressable>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.sm }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.ctaLabel}>
+            {selectedPkg
+              ? `₹${(PACKAGES.find(p => p.id === selectedPkg)?.price || 0).toLocaleString('en-IN')}`
+              : `From ₹${pujari.hourlyRate.toLocaleString('en-IN')}/hr`}
+          </Text>
+          <Text style={styles.ctaSublabel}>{selectedPkg ? 'Package selected' : 'Select a package above'}</Text>
         </View>
-      </LinearGradient>
+        <Pressable style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]} onPress={() => router.push('/puja/1')}>
+          <Text style={styles.bookBtnText}>Book Now</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -201,63 +191,68 @@ export default function PujariDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   // Hero
-  hero: { paddingBottom: spacing.xl, alignItems: 'center', paddingTop: spacing.huge },
-  backBtn: { position: 'absolute', top: spacing.xl + 24, left: spacing.lg, padding: spacing.sm },
-  backIcon: { fontSize: 24, color: colors.textPrimary },
+  hero: { paddingBottom: spacing.xl, alignItems: 'center' },
+  backBtn: { position: 'absolute', left: spacing.lg, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   avatarContainer: { alignItems: 'center', marginBottom: spacing.md },
-  avatar: { width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,121,44,0.2)', borderWidth: 3, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 92, height: 92, borderRadius: 46, backgroundColor: colors.surface, borderWidth: 3, borderColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarText: { ...typography.displayLarge, color: colors.primary, fontSize: 36 },
-  verifiedBadge: { marginTop: spacing.sm, backgroundColor: 'rgba(6,193,103,0.15)', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: 'rgba(6,193,103,0.3)' },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: 'rgba(22,163,74,0.3)' },
   verifiedText: { ...typography.badge, color: colors.success },
   name: { ...typography.headlineLarge, color: colors.textPrimary, marginBottom: 4, textAlign: 'center' },
   specialization: { ...typography.bodyMedium, color: colors.textSecondary, marginBottom: spacing.sm, textAlign: 'center', paddingHorizontal: spacing.xxl },
-  ethnicityBadge: { marginTop: spacing.sm, backgroundColor: 'rgba(255,237,41,0.1)', paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: 'rgba(255,237,41,0.25)' },
-  ethnicityText: { ...typography.labelMedium, color: colors.accentYellow },
+  ethnicityBadge: { marginTop: spacing.sm, backgroundColor: 'rgba(255,255,255,0.65)', paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.hairlineGold },
+  ethnicityText: { ...typography.labelMedium, color: colors.maroon, fontWeight: '600' },
   // Stats
-  statsRow: { flexDirection: 'row', marginHorizontal: spacing.lg, marginTop: spacing.lg, backgroundColor: colors.cardBg, borderRadius: borderRadius.xl, padding: spacing.lg, borderWidth: 1, borderColor: colors.cardBorder },
+  statsRow: { flexDirection: 'row', marginHorizontal: spacing.lg, marginTop: -spacing.xl, backgroundColor: colors.surface, borderRadius: borderRadius.xl, padding: spacing.lg, borderWidth: 1, borderColor: colors.cardBorder, shadowColor: colors.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12, elevation: 3 },
   statItem: { flex: 1, alignItems: 'center' },
   statValue: { ...typography.headlineSmall, color: colors.primary, marginBottom: 2 },
   statLabel: { ...typography.labelSmall, color: colors.textMuted },
   // Body
   body: { padding: spacing.lg },
-  sectionTitle: { ...typography.headlineSmall, color: colors.textPrimary, marginTop: spacing.lg, marginBottom: spacing.md },
+  sectionTitle: { ...typography.headlineSmall, color: colors.textPrimary, marginTop: spacing.xxl, marginBottom: spacing.md },
   bio: { ...typography.bodyMedium, color: colors.textSecondary, lineHeight: 24 },
   // Details
   detailsGrid: { gap: spacing.sm },
-  detailItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBg, borderRadius: borderRadius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.cardBorder },
-  detailIcon: { fontSize: 20, marginRight: spacing.md },
+  detailItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.cardBorder },
+  detailIconWrap: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(242,112,10,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: spacing.md },
   detailText: { flex: 1 },
   detailLabel: { ...typography.labelSmall, color: colors.textMuted },
   detailValue: { ...typography.bodyMedium, color: colors.textPrimary, marginTop: 2 },
   // Packages
-  pkgCard: { backgroundColor: colors.cardBg, borderRadius: borderRadius.lg, padding: spacing.lg, marginBottom: spacing.md, borderWidth: 1.5, borderColor: colors.cardBorder, position: 'relative' },
-  pkgCardSelected: { borderColor: colors.primary, backgroundColor: 'rgba(255,121,44,0.06)' },
-  popularBadge: { backgroundColor: 'rgba(255,237,41,0.15)', paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: borderRadius.sm, marginBottom: spacing.sm, alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(255,237,41,0.25)' },
-  popularText: { ...typography.badge, color: colors.accentYellow, fontSize: 10 },
-  pkgHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.xs },
-  pkgName: { ...typography.titleMedium, color: colors.textPrimary },
-  pkgDuration: { ...typography.bodySmall, color: colors.textMuted, marginTop: 2 },
-  pkgPrice: { ...typography.price, color: colors.accentYellow },
+  pkgCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.lg, marginBottom: spacing.md, borderWidth: 1.5, borderColor: colors.cardBorder },
+  pkgCardSelected: { borderColor: colors.primary, backgroundColor: 'rgba(242,112,10,0.05)' },
+  pkgContent: { flex: 1, paddingRight: spacing.md },
+  popularBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(242,112,10,0.14)', paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: borderRadius.sm, marginBottom: spacing.sm, alignSelf: 'flex-start' },
+  popularText: { ...typography.badge, color: colors.primary, fontSize: 10 },
+  pkgHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  pkgName: { ...typography.titleMedium, color: colors.textPrimary, flexShrink: 1 },
+  pkgPrice: { ...typography.price, color: colors.primary, fontSize: 16 },
+  pkgDurationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2, marginBottom: spacing.xs },
+  pkgDuration: { ...typography.bodySmall, color: colors.textMuted },
   pkgDesc: { ...typography.bodySmall, color: colors.textMuted },
-  radio: { position: 'absolute', top: spacing.lg, right: spacing.lg, width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.textMuted, alignItems: 'center', justifyContent: 'center' },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.textMuted, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
   radioSelected: { borderColor: colors.primary },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+  radioInner: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.primary },
   // Reviews
-  reviewCard: { backgroundColor: colors.cardBg, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.cardBorder },
+  reviewCard: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.cardBorder },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,121,44,0.2)', alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
+  reviewAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(242,112,10,0.10)', alignItems: 'center', justifyContent: 'center', marginRight: spacing.sm },
   reviewAvatarText: { ...typography.titleSmall, color: colors.primary },
   reviewMeta: { flex: 1 },
   reviewName: { ...typography.titleSmall, color: colors.textPrimary },
-  reviewRating: { flexDirection: 'row', alignItems: 'center' },
-  reviewStar: { fontSize: 12, color: colors.starFilled },
+  reviewRating: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   reviewDate: { ...typography.labelSmall, color: colors.textMuted },
   reviewText: { ...typography.bodySmall, color: colors.textSecondary, lineHeight: 18 },
   // Bottom CTA
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingTop: spacing.xxl, paddingBottom: spacing.xxxl, paddingHorizontal: spacing.lg },
-  ctaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  ctaLabel: { ...typography.headlineSmall, color: colors.accentYellow },
+  bottomBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingTop: spacing.md, paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.cardBorderLight,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 12,
+  },
+  ctaLabel: { ...typography.headlineSmall, color: colors.primary },
   ctaSublabel: { ...typography.bodySmall, color: colors.textMuted },
-  bookBtn: { backgroundColor: colors.success, paddingHorizontal: spacing.xxl, paddingVertical: spacing.lg, borderRadius: borderRadius.xl },
+  bookBtn: { backgroundColor: colors.success, paddingHorizontal: spacing.xxl, paddingVertical: spacing.md, borderRadius: borderRadius.full },
   bookBtnText: { ...typography.button, color: '#fff', fontSize: 16 },
 });

@@ -1,16 +1,11 @@
 /**
- * PUJARI Tab — Browse and book pujaris
- * Ported from MyPandit's PujariScreen.kt
+ * PUJARI Tab — browse and book pujaris.
  */
-import React, { useRef, useState } from 'react';
-import {
-  View, ScrollView, StyleSheet, FlatList,
-  Dimensions, NativeScrollEvent, NativeSyntheticEvent,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { View, ScrollView, StyleSheet, FlatList, Dimensions } from 'react-native';
 import { router } from 'expo-router';
-import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/typography';
+import { Screen } from '@/components/layout/Screen';
 import { PujariCard } from '@/components/cards/PujariCard';
 import { EventCard } from '@/components/cards/EventCard';
 import { MoodCard } from '@/components/cards/MoodCard';
@@ -20,7 +15,7 @@ import { config } from '@/constants/config';
 import { Pujari } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH * 0.75;
+const CARD_WIDTH = SCREEN_WIDTH * 0.78;
 
 const TOP_PUJARIS: Pujari[] = [
   { id: '1', name: 'Pandit Rajesh Sharma', experience: 15, ethnicity: 'Hindi', specialization: 'Griha Pravesh, Wedding Ceremonies', phone: '+91-9876543210', email: 'rajesh@mypujari.com', location: 'Guwahati', rating: 4.8, totalBookings: 523, hourlyRate: 1500, bio: 'Expert in Vedic rituals with 15+ years of experience. Specialized in home pujas and wedding ceremonies.', languages: 'Hindi, English, Assamese', isVerified: true },
@@ -31,8 +26,8 @@ const TOP_PUJARIS: Pujari[] = [
 
 const HOME_PUJAS = [
   { id: '1', title: 'Ganesh Chaturthi Puja', dateTime: '7 Sep 2026', venue: 'Your Home - Guwahati', price: '₹2,500', discountText: 'Includes Puja Kit' },
-  { id: '7', title: 'Navratri Complete Package', dateTime: '3-12 Oct 2026', venue: 'Your Home - 9 Days', price: '₹15,000', discountText: 'All Materials Included' },
-  { id: '8', title: 'Vastu Shanti Puja', dateTime: 'Book Anytime', venue: 'Your Office/Home', price: '₹7,500', discountText: 'Expert Vastu Consultation Free' },
+  { id: '7', title: 'Navratri Complete Package', dateTime: '3-12 Oct 2026', venue: 'Your Home - 9 Days', price: '₹15,000', discountText: 'All Included' },
+  { id: '8', title: 'Vastu Shanti Puja', dateTime: 'Book Anytime', venue: 'Your Office/Home', price: '₹7,500', discountText: 'Free Consultation' },
 ];
 
 const TEMPLE_PUJAS = [
@@ -44,20 +39,19 @@ const TEMPLE_PUJAS = [
 const ETHNICITY_MOODS = [
   { id: '1', title: 'Assamese', emoji: '🌺' },
   { id: '2', title: 'Bengali', emoji: '🌸' },
-  { id: '3', title: 'Hindi', emoji: '🙏' },
-  { id: '4', title: 'Tamil', emoji: '🪔' },
+  { id: '3', title: 'Hindi', emoji: '🪔' },
+  { id: '4', title: 'Tamil', emoji: '🕉️' },
   { id: '5', title: 'Telugu', emoji: '🌿' },
 ];
 
 export default function PujariScreen() {
   return (
-    <LinearGradient colors={[colors.background, colors.surface]} style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <Screen>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
         <LocationHeader location={config.DEFAULT_LOCATION_DETAIL} onProfilePress={() => router.push('/profile')} />
         <SearchBar onPress={() => router.push('/search')} placeholder="Search for Pujari, Pandit..." />
 
-        {/* Top Pujaris */}
-        <SectionHeader title="⭐ Top Pujaris" onViewAll={() => router.push('/pujari/all')} />
+        <SectionHeader title="Top Pujaris" onViewAll={() => router.push('/pujari/all')} />
         <FlatList
           data={TOP_PUJARIS}
           horizontal
@@ -75,8 +69,7 @@ export default function PujariScreen() {
           ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
         />
 
-        {/* Book by Ethnicity */}
-        <SectionHeader title="🌍 Book a Pujari" onViewAll={() => router.push('/pujari/all')} />
+        <SectionHeader title="Book by Tradition" onViewAll={() => router.push('/pujari/all')} />
         <FlatList
           data={ETHNICITY_MOODS}
           horizontal
@@ -89,8 +82,7 @@ export default function PujariScreen() {
           )}
         />
 
-        {/* Pujas at Home */}
-        <SectionHeader title="🏠 Pujas at Home" onViewAll={() => router.push({ pathname: '/puja/all', params: { category: 'HOME' } })} />
+        <SectionHeader title="Pujas at Home" onViewAll={() => router.push({ pathname: '/puja/all', params: { category: 'HOME' } })} />
         <FlatList
           data={HOME_PUJAS}
           horizontal
@@ -103,8 +95,7 @@ export default function PujariScreen() {
           ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
         />
 
-        {/* Pujas at Temple */}
-        <SectionHeader title="⛪ Pujas at Temple" onViewAll={() => router.push({ pathname: '/puja/all', params: { category: 'TEMPLE' } })} />
+        <SectionHeader title="Pujas at Temple" onViewAll={() => router.push({ pathname: '/puja/all', params: { category: 'TEMPLE' } })} />
         <FlatList
           data={TEMPLE_PUJAS}
           horizontal
@@ -116,15 +107,12 @@ export default function PujariScreen() {
           )}
           ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
         />
-
-        <View style={{ height: 100 }} />
       </ScrollView>
-    </LinearGradient>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   carousel: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
   moodRow: { paddingHorizontal: spacing.lg, gap: spacing.lg, paddingBottom: spacing.sm },
 });

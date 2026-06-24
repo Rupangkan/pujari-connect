@@ -1,24 +1,21 @@
 /**
- * EventCard — Puja event card for carousels and lists
- * Ported from MyPandit's EventCard composable (CardComposables.kt)
+ * EventCard — puja card for carousels and grids.
+ * Light theme: white surface with a warm golden banner. Does not depend on a
+ * remote image (falls back to a gradient banner + icon), so cards never render
+ * empty.
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Dimensions,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Icon } from '@/components/ui/Icon';
 import { EventCard as EventCardType } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH * 0.78;
+const DEFAULT_WIDTH = SCREEN_WIDTH * 0.78;
 
 interface EventCardProps {
   event: EventCardType;
@@ -27,64 +24,49 @@ interface EventCardProps {
   compact?: boolean;
 }
 
-export function EventCard({ event, onPress, width = CARD_WIDTH, compact = false }: EventCardProps) {
-  const cardHeight = compact ? 180 : 220;
+export function EventCard({ event, onPress, width = DEFAULT_WIDTH, compact = false }: EventCardProps) {
+  const bannerHeight = compact ? 84 : 104;
 
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.container,
-        { width, height: cardHeight },
-        pressed && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.container, { width }, pressed && styles.pressed]}
     >
-      {/* Background Image */}
-      {event.imageUrl ? (
-        <Image
-          source={{ uri: event.imageUrl }}
-          style={styles.image}
-          contentFit="cover"
-          transition={300}
-        />
-      ) : (
-        <LinearGradient
-          colors={['#2D1408', '#1A0A00', '#0F0A04']}
-          style={styles.image}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
-      )}
-
-      {/* Gradient overlay */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
-        style={styles.overlay}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      />
-
-      {/* Discount badge */}
-      {event.discountText && (
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountText} numberOfLines={1}>
-            {event.discountText}
-          </Text>
-        </View>
-      )}
+      {/* Banner */}
+      <View style={[styles.banner, { height: bannerHeight }]}>
+        {event.imageUrl ? (
+          <Image source={{ uri: event.imageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
+        ) : (
+          <LinearGradient colors={colors.gradientAarti} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <View style={styles.bannerIcon}>
+              <Icon name="flame" size={compact ? 30 : 38} color="rgba(122, 31, 43, 0.28)" />
+            </View>
+          </LinearGradient>
+        )}
+        {event.discountText && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText} numberOfLines={1}>{event.discountText}</Text>
+          </View>
+        )}
+      </View>
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>{event.title}</Text>
+        <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={2}>{event.title}</Text>
+
         <View style={styles.metaRow}>
-          <Text style={styles.dateTime}>{event.dateTime}</Text>
-          <Text style={styles.dot}>•</Text>
-          <Text style={styles.venue} numberOfLines={1}>{event.venue}</Text>
+          <Icon name="calendar-outline" size={13} color={colors.textMuted} />
+          <Text style={styles.metaText} numberOfLines={1}>{event.dateTime}</Text>
         </View>
-        <View style={styles.priceRow}>
+        <View style={styles.metaRow}>
+          <Icon name="location-outline" size={13} color={colors.textMuted} />
+          <Text style={styles.metaText} numberOfLines={1}>{event.venue}</Text>
+        </View>
+
+        <View style={styles.footer}>
           <Text style={styles.price}>{event.price}</Text>
           <View style={styles.bookButton}>
-            <Text style={styles.bookText}>Book Now</Text>
+            <Text style={styles.bookText}>Book</Text>
           </View>
         </View>
       </View>
@@ -94,84 +76,87 @@ export function EventCard({ event, onPress, width = CARD_WIDTH, compact = false 
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    elevation: 2,
   },
   pressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.95,
+    transform: [{ scale: 0.985 }],
   },
-  image: {
+  banner: {
+    width: '100%',
+    justifyContent: 'center',
+  },
+  bannerIcon: {
     ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  discountBadge: {
+  badge: {
     position: 'absolute',
     top: spacing.sm,
     left: spacing.sm,
+    maxWidth: '85%',
     backgroundColor: colors.primary,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingVertical: 3,
     borderRadius: borderRadius.sm,
   },
-  discountText: {
+  badgeText: {
     ...typography.labelSmall,
-    color: '#FFFFFF',
+    color: colors.textOnPrimary,
     fontWeight: '700',
   },
   content: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: spacing.md,
   },
   title: {
     ...typography.titleLarge,
     color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  titleCompact: {
+    ...typography.titleSmall,
     marginBottom: spacing.xs,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    gap: 6,
+    marginBottom: 4,
   },
-  dateTime: {
+  metaText: {
     ...typography.bodySmall,
-    color: colors.textSecondary,
-  },
-  dot: {
     color: colors.textMuted,
-    marginHorizontal: spacing.xs,
-    fontSize: 8,
-  },
-  venue: {
-    ...typography.bodySmall,
-    color: colors.textSecondary,
     flex: 1,
   },
-  priceRow: {
+  footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: spacing.sm,
   },
   price: {
     ...typography.price,
-    color: colors.accentYellow,
+    color: colors.primary,
   },
   bookButton: {
-    backgroundColor: colors.success,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.xs + 3,
+    borderRadius: borderRadius.full,
   },
   bookText: {
     ...typography.labelMedium,
-    color: '#FFFFFF',
+    color: colors.textOnPrimary,
     fontWeight: '700',
   },
 });

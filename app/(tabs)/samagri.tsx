@@ -1,15 +1,13 @@
 /**
- * SAMAGRI Tab — Browse and shop puja samagri items
- * Ported from MyPandit's SamagriScreen.kt
+ * SAMAGRI Tab — browse and shop puja samagri items.
  */
 import React, { useState } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet, FlatList, Pressable,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, ScrollView, StyleSheet, FlatList, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Screen } from '@/components/layout/Screen';
+import { Icon } from '@/components/ui/Icon';
 import { Chip } from '@/components/ui/Chip';
 import { SamagriItemCard } from '@/components/cards/SamagriItemCard';
 import { useCartStore } from '@/store/cartStore';
@@ -62,31 +60,28 @@ export default function SamagriScreen() {
   const total = getTotal();
   const delivery = getDeliveryFee();
 
-  const getQuantity = (id: string) => {
-    const found = items.find(ci => ci.id === id);
-    return found ? found.cartQuantity : 0;
-  };
+  const getQuantity = (id: string) => items.find(ci => ci.id === id)?.cartQuantity ?? 0;
 
   return (
-    <LinearGradient colors={[colors.background, colors.surface]} style={styles.container}>
+    <Screen>
       <View style={styles.header}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.title}>Puja Samagri</Text>
-          <Text style={styles.subtitle}>Get items delivered at your doorstep</Text>
+          <Text style={styles.subtitle}>Delivered to your doorstep</Text>
         </View>
         {itemCount > 0 && (
-          <Pressable onPress={() => router.push('/booking/cart')} style={styles.cartBtn}>
-            <Text style={styles.cartIcon}>🛒</Text>
+          <Pressable onPress={() => router.push('/booking/cart')} style={styles.cartBtn} hitSlop={8}>
+            <Icon name="basket-outline" size={26} color={colors.textPrimary} />
             <View style={styles.cartBadge}><Text style={styles.cartBadgeText}>{itemCount}</Text></View>
           </Pressable>
         )}
       </View>
 
-      {/* Category filter */}
       <FlatList
         data={CATEGORIES}
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipList}
         contentContainerStyle={styles.chipRow}
         keyExtractor={i => i}
         renderItem={({ item }) => (
@@ -94,7 +89,6 @@ export default function SamagriScreen() {
         )}
       />
 
-      {/* Items list */}
       <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
         {filtered.map(item => (
           <SamagriItemCard
@@ -105,53 +99,57 @@ export default function SamagriScreen() {
             onRemove={() => removeItem(item.id)}
           />
         ))}
-        <View style={{ height: 120 }} />
+        <View style={{ height: itemCount > 0 ? 96 : spacing.xxxl }} />
       </ScrollView>
 
-      {/* Cart summary bar */}
       {itemCount > 0 && (
         <View style={styles.cartBar}>
-          <View>
-            <Text style={styles.cartBarItems}>{itemCount} items • {delivery === 0 ? 'Free Delivery 🎉' : `+₹${delivery} delivery`}</Text>
-            <Text style={styles.cartBarTotal}>Total: ₹{(total + delivery).toLocaleString('en-IN')}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cartBarItems}>
+              {itemCount} items • {delivery === 0 ? 'Free delivery' : `+₹${delivery} delivery`}
+            </Text>
+            <Text style={styles.cartBarTotal}>₹{(total + delivery).toLocaleString('en-IN')}</Text>
           </View>
           <Pressable onPress={() => router.push('/booking/cart')} style={styles.viewCartBtn}>
-            <Text style={styles.viewCartText}>View Cart →</Text>
+            <Text style={styles.viewCartText}>View Cart</Text>
+            <Icon name="arrow-forward" size={16} color={colors.textOnPrimary} />
           </Pressable>
         </View>
       )}
-    </LinearGradient>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg, paddingTop: spacing.xl + 24, paddingBottom: spacing.md,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md,
   },
   title: { ...typography.displayMedium, color: colors.textPrimary },
   subtitle: { ...typography.bodyMedium, color: colors.textMuted, marginTop: 4 },
-  cartBtn: { position: 'relative', padding: spacing.sm },
-  cartIcon: { fontSize: 28 },
+  cartBtn: { padding: spacing.sm },
   cartBadge: {
     position: 'absolute', top: 0, right: 0,
-    width: 18, height: 18, borderRadius: 9,
+    minWidth: 18, height: 18, paddingHorizontal: 4, borderRadius: 9,
     backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center',
   },
   cartBadgeText: { ...typography.badge, color: '#fff', fontSize: 9 },
+  chipList: { flexGrow: 0 },
   chipRow: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   listContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
   cartBar: {
-    position: 'absolute', bottom: 80, left: spacing.lg, right: spacing.lg,
-    backgroundColor: colors.surfaceContainerHighest,
-    borderRadius: borderRadius.lg, padding: spacing.lg,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1, borderColor: colors.cardBorder,
-    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 10,
+    position: 'absolute', bottom: spacing.lg, left: spacing.lg, right: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg, padding: spacing.md,
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderColor: colors.cardBorderLight,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.14, shadowRadius: 12, elevation: 12,
   },
-  cartBarItems: { ...typography.bodySmall, color: colors.textSecondary },
-  cartBarTotal: { ...typography.titleMedium, color: colors.primary },
-  viewCartBtn: { backgroundColor: colors.success, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.sm },
-  viewCartText: { ...typography.button, color: '#fff', fontSize: 14 },
+  cartBarItems: { ...typography.bodySmall, color: colors.textMuted },
+  cartBarTotal: { ...typography.titleLarge, color: colors.textPrimary },
+  viewCartBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: borderRadius.full,
+  },
+  viewCartText: { ...typography.button, color: colors.textOnPrimary, fontSize: 14 },
 });

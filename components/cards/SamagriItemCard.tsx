@@ -1,6 +1,5 @@
 /**
- * SamagriItemCard — Product card for the Samagri shop tab
- * Ported from MyPandit's SamagriScreen items
+ * SamagriItemCard — product row for the Samagri shop. Light theme, vector icons.
  */
 
 import React from 'react';
@@ -8,6 +7,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { SamagriItem } from '@/types';
 
 interface SamagriItemCardProps {
@@ -20,21 +20,12 @@ interface SamagriItemCardProps {
 export function SamagriItemCard({ item, quantity, onAdd, onRemove }: SamagriItemCardProps) {
   return (
     <View style={styles.container}>
-      {/* Image */}
+      {/* Thumbnail */}
       <View style={styles.imageContainer}>
         {item.imageUrl ? (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.image}
-            contentFit="cover"
-            transition={300}
-          />
+          <Image source={{ uri: item.imageUrl }} style={styles.image} contentFit="cover" transition={300} />
         ) : (
-          <View style={styles.imagePlaceholder}>
-            <Text style={styles.placeholderEmoji}>
-              {getCategoryEmoji(item.category)}
-            </Text>
-          </View>
+          <Icon name={getCategoryIcon(item.category)} size={26} color={colors.primary} />
         )}
         {!item.inStock && (
           <View style={styles.outOfStockOverlay}>
@@ -53,7 +44,7 @@ export function SamagriItemCard({ item, quantity, onAdd, onRemove }: SamagriItem
         </View>
       </View>
 
-      {/* Add/Remove */}
+      {/* Add / Quantity */}
       <View style={styles.actionContainer}>
         {quantity === 0 ? (
           <Pressable
@@ -69,12 +60,12 @@ export function SamagriItemCard({ item, quantity, onAdd, onRemove }: SamagriItem
           </Pressable>
         ) : (
           <View style={styles.quantityControl}>
-            <Pressable onPress={onRemove} style={styles.qtyButton}>
-              <Text style={styles.qtyButtonText}>−</Text>
+            <Pressable onPress={onRemove} style={styles.qtyButton} hitSlop={4}>
+              <Icon name="remove" size={16} color={colors.textOnPrimary} />
             </Pressable>
             <Text style={styles.quantity}>{quantity}</Text>
-            <Pressable onPress={onAdd} style={styles.qtyButton}>
-              <Text style={styles.qtyButtonText}>+</Text>
+            <Pressable onPress={onAdd} style={styles.qtyButton} hitSlop={4}>
+              <Icon name="add" size={16} color={colors.textOnPrimary} />
             </Pressable>
           </View>
         )}
@@ -83,18 +74,18 @@ export function SamagriItemCard({ item, quantity, onAdd, onRemove }: SamagriItem
   );
 }
 
-function getCategoryEmoji(category: string): string {
-  const emojis: Record<string, string> = {
-    Flowers: '🌸',
-    Fruits: '🍌',
-    Grains: '🌾',
-    Vessels: '🏺',
-    Fragrance: '🪔',
-    Powders: '🟡',
-    Offerings: '🍯',
-    Accessories: '📿',
+function getCategoryIcon(category: string): IconName {
+  const map: Record<string, IconName> = {
+    Flowers: 'flower-outline',
+    Fruits: 'nutrition-outline',
+    Grains: 'leaf-outline',
+    Vessels: 'cafe-outline',
+    Fragrance: 'flame-outline',
+    Powders: 'color-palette-outline',
+    Offerings: 'gift-outline',
+    Accessories: 'sparkles-outline',
   };
-  return emojis[category] || '🕉️';
+  return map[category] || 'leaf-outline';
 }
 
 const styles = StyleSheet.create({
@@ -102,43 +93,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     marginBottom: spacing.sm,
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 1,
   },
   imageContainer: {
-    width: 60,
-    height: 60,
+    width: 56,
+    height: 56,
     borderRadius: borderRadius.sm,
     overflow: 'hidden',
     marginRight: spacing.md,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: colors.surfaceContainerHigh,
+    backgroundColor: 'rgba(242, 112, 10, 0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  placeholderEmoji: {
-    fontSize: 28,
-  },
+  image: { width: '100%', height: '100%' },
   outOfStockOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   outOfStockText: {
     ...typography.badge,
-    color: colors.error,
-    fontSize: 8,
+    color: '#FFFFFF',
+    fontSize: 7,
+    textAlign: 'center',
   },
   details: {
     flex: 1,
@@ -160,7 +147,7 @@ const styles = StyleSheet.create({
   },
   price: {
     ...typography.titleMedium,
-    color: colors.accentYellow,
+    color: colors.primary,
   },
   unit: {
     ...typography.bodySmall,
@@ -171,13 +158,14 @@ const styles = StyleSheet.create({
   },
   addButton: {
     borderWidth: 1.5,
-    borderColor: colors.success,
+    borderColor: colors.primary,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs + 2,
-    borderRadius: borderRadius.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(242, 112, 10, 0.06)',
   },
   addButtonPressed: {
-    backgroundColor: 'rgba(6, 193, 103, 0.15)',
+    backgroundColor: 'rgba(242, 112, 10, 0.16)',
   },
   addButtonDisabled: {
     borderColor: colors.textMuted,
@@ -185,14 +173,16 @@ const styles = StyleSheet.create({
   },
   addText: {
     ...typography.labelMedium,
-    color: colors.success,
+    color: colors.primary,
     fontWeight: '700',
   },
   quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceContainerHigh,
-    borderRadius: borderRadius.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
     overflow: 'hidden',
   },
   qtyButton: {
@@ -200,19 +190,13 @@ const styles = StyleSheet.create({
     height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.success,
-  },
-  qtyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 20,
+    backgroundColor: colors.primary,
   },
   quantity: {
     ...typography.titleMedium,
     color: colors.textPrimary,
     paddingHorizontal: spacing.md,
-    minWidth: 32,
+    minWidth: 36,
     textAlign: 'center',
   },
 });

@@ -1,20 +1,15 @@
 /**
- * Puja Detail Screen — Full puja information with booking flow
- * Ported from MyPandit's PujaDetailActivity.kt
+ * Puja Detail Screen — full puja information with booking flow. Light theme.
  */
 import React, { useState } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet, Pressable,
-  Dimensions, NativeScrollEvent, NativeSyntheticEvent,
-} from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Icon } from '@/components/ui/Icon';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Static detail data (will be replaced by API call using id from params)
 const PUJA_DETAILS: Record<string, any> = {
   '1': {
     name: 'Griha Pravesh Puja',
@@ -59,6 +54,7 @@ const DEFAULT_PUJA = {
 
 export default function PujaDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
   const puja = PUJA_DETAILS[id || ''] || DEFAULT_PUJA;
   const [selectedPackage, setSelectedPackage] = useState<string | null>(puja.packages?.[0]?.id || null);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
@@ -68,19 +64,23 @@ export default function PujaDetailScreen() {
   const offeringsTotal = puja.offerings?.filter((o: any) => selectedOfferings.includes(o.id)).reduce((s: number, o: any) => s + o.price, 0) || 0;
   const total = (pkg?.price || puja.basePrice) + offeringsTotal;
 
-  const toggleOffering = (id: string) => {
-    setSelectedOfferings(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  const toggleOffering = (oid: string) => {
+    setSelectedOfferings(prev => prev.includes(oid) ? prev.filter(i => i !== oid) : [...prev, oid]);
   };
+
+  const hours = Math.floor(puja.duration / 60);
+  const mins = puja.duration % 60;
+  const durationLabel = `${hours > 0 ? `${hours}h ` : ''}${mins > 0 ? `${mins}m` : ''}`.trim();
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         {/* Hero */}
-        <LinearGradient colors={['#2D1408', '#1A0A00']} style={styles.hero}>
-          <Pressable onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backIcon}>←</Text>
+        <LinearGradient colors={colors.gradientAarti} style={styles.hero} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+          <Pressable onPress={() => router.back()} style={[styles.backBtn, { top: insets.top + spacing.sm }]} hitSlop={8}>
+            <Icon name="arrow-back" size={22} color={colors.maroon} />
           </Pressable>
-          <Text style={styles.heroEmoji}>🪔</Text>
+          <Icon name="flame" size={56} color="rgba(122,31,43,0.32)" />
           <View style={styles.heroBadgeRow}>
             <View style={styles.typeBadge}><Text style={styles.typeBadgeText}>{puja.type}</Text></View>
             <View style={styles.catBadge}><Text style={styles.catBadgeText}>{puja.category}</Text></View>
@@ -88,18 +88,14 @@ export default function PujaDetailScreen() {
         </LinearGradient>
 
         <View style={styles.body}>
-          {/* Title and meta */}
           <Text style={styles.title}>{puja.name}</Text>
           <View style={styles.metaRow}>
-            <Text style={styles.metaItem}>⏱ {Math.floor(puja.duration / 60) > 0 ? `${Math.floor(puja.duration / 60)}h ` : ''}{puja.duration % 60 > 0 ? `${puja.duration % 60}m` : ''}</Text>
-            <Text style={styles.metaDot}>•</Text>
-            <Text style={styles.metaItem}>📅 {puja.dateTime}</Text>
-            <Text style={styles.metaDot}>•</Text>
-            <Text style={styles.metaItem}>📍 {puja.location}</Text>
+            <View style={styles.metaItem}><Icon name="time-outline" size={14} color={colors.textMuted} /><Text style={styles.metaText}>{durationLabel}</Text></View>
+            <View style={styles.metaItem}><Icon name="calendar-outline" size={14} color={colors.textMuted} /><Text style={styles.metaText}>{puja.dateTime}</Text></View>
+            <View style={styles.metaItem}><Icon name="location-outline" size={14} color={colors.textMuted} /><Text style={styles.metaText}>{puja.location}</Text></View>
           </View>
           <Text style={styles.description}>{puja.description}</Text>
 
-          {/* About */}
           <Text style={styles.sectionTitle}>About this Puja</Text>
           <Text style={styles.about}>{puja.aboutPuja}</Text>
 
@@ -107,31 +103,40 @@ export default function PujaDetailScreen() {
           {puja.packages?.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>Select Package</Text>
-              {puja.packages.map((pkg: any) => (
-                <Pressable
-                  key={pkg.id}
-                  onPress={() => setSelectedPackage(pkg.id)}
-                  style={[styles.packageCard, selectedPackage === pkg.id && styles.packageCardSelected]}
-                >
-                  <View style={styles.packageHeader}>
-                    <Text style={styles.packageTitle}>{pkg.title}</Text>
-                    {pkg.isPopular && <View style={styles.popularBadge}><Text style={styles.popularText}>Most Popular</Text></View>}
-                  </View>
-                  <Text style={styles.packagePrice}>₹{pkg.price.toLocaleString('en-IN')}</Text>
-                  {pkg.coupon && <Text style={styles.coupon}>🏷️ Use code: {pkg.coupon}</Text>}
-                  {pkg.details?.map((d: any, di: number) => (
-                    <View key={di} style={styles.packageDetail}>
-                      <Text style={styles.detailHeading}>{d.heading} · <Text style={styles.detailLabel}>{d.label}</Text></Text>
-                      {d.items.map((item: string, ii: number) => (
-                        <Text key={ii} style={styles.detailItem}>✓ {item}</Text>
+              {puja.packages.map((p: any) => {
+                const active = selectedPackage === p.id;
+                return (
+                  <Pressable key={p.id} onPress={() => setSelectedPackage(p.id)} style={[styles.packageCard, active && styles.packageCardSelected]}>
+                    <View style={styles.packageContent}>
+                      <View style={styles.packageHeader}>
+                        <Text style={styles.packageTitle}>{p.title}</Text>
+                        {p.isPopular && <View style={styles.popularBadge}><Text style={styles.popularText}>POPULAR</Text></View>}
+                      </View>
+                      <Text style={styles.packagePrice}>₹{p.price.toLocaleString('en-IN')}</Text>
+                      {p.coupon && (
+                        <View style={styles.couponRow}>
+                          <Icon name="pricetag-outline" size={13} color={colors.success} />
+                          <Text style={styles.coupon}>Use code: {p.coupon}</Text>
+                        </View>
+                      )}
+                      {p.details?.map((d: any, di: number) => (
+                        <View key={di} style={styles.packageDetail}>
+                          <Text style={styles.detailHeading}>{d.heading} · <Text style={styles.detailLabel}>{d.label}</Text></Text>
+                          {d.items.map((item: string, ii: number) => (
+                            <View key={ii} style={styles.detailItemRow}>
+                              <Icon name="checkmark" size={13} color={colors.success} />
+                              <Text style={styles.detailItem}>{item}</Text>
+                            </View>
+                          ))}
+                        </View>
                       ))}
                     </View>
-                  ))}
-                  <View style={[styles.packageRadio, selectedPackage === pkg.id && styles.packageRadioSelected]}>
-                    {selectedPackage === pkg.id && <View style={styles.packageRadioInner} />}
-                  </View>
-                </Pressable>
-              ))}
+                    <View style={[styles.radio, active && styles.radioSelected]}>
+                      {active && <View style={styles.radioInner} />}
+                    </View>
+                  </Pressable>
+                );
+              })}
             </>
           )}
 
@@ -139,19 +144,18 @@ export default function PujaDetailScreen() {
           {puja.offerings?.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>Add Offerings (Optional)</Text>
-              {puja.offerings.map((o: any) => (
-                <Pressable
-                  key={o.id}
-                  onPress={() => toggleOffering(o.id)}
-                  style={[styles.offeringRow, selectedOfferings.includes(o.id) && styles.offeringRowSelected]}
-                >
-                  <View style={[styles.checkbox, selectedOfferings.includes(o.id) && styles.checkboxSelected]}>
-                    {selectedOfferings.includes(o.id) && <Text style={styles.checkmark}>✓</Text>}
-                  </View>
-                  <Text style={styles.offeringName}>{o.name}</Text>
-                  <Text style={styles.offeringPrice}>₹{o.price}</Text>
-                </Pressable>
-              ))}
+              {puja.offerings.map((o: any) => {
+                const on = selectedOfferings.includes(o.id);
+                return (
+                  <Pressable key={o.id} onPress={() => toggleOffering(o.id)} style={[styles.offeringRow, on && styles.offeringRowSelected]}>
+                    <View style={[styles.checkbox, on && styles.checkboxSelected]}>
+                      {on && <Icon name="checkmark" size={14} color={colors.textOnPrimary} />}
+                    </View>
+                    <Text style={styles.offeringName}>{o.name}</Text>
+                    <Text style={styles.offeringPrice}>₹{o.price}</Text>
+                  </Pressable>
+                );
+              })}
             </>
           )}
 
@@ -163,90 +167,88 @@ export default function PujaDetailScreen() {
                 <Pressable key={i} onPress={() => setExpandedFaq(expandedFaq === i ? null : i)} style={styles.faqItem}>
                   <View style={styles.faqQuestion}>
                     <Text style={styles.faqQ}>{faq.question}</Text>
-                    <Text style={styles.faqChevron}>{expandedFaq === i ? '▲' : '▼'}</Text>
+                    <Icon name={expandedFaq === i ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textMuted} />
                   </View>
                   {expandedFaq === i && <Text style={styles.faqA}>{faq.answer}</Text>}
                 </Pressable>
               ))}
             </>
           )}
-          <View style={{ height: 120 }} />
         </View>
       </ScrollView>
 
       {/* Bottom CTA */}
-      <LinearGradient colors={['transparent', colors.background, colors.background]} style={styles.bottomBar} pointerEvents="box-none">
-        <View style={styles.priceRow}>
-          <View>
-            <Text style={styles.startingFrom}>Total Amount</Text>
-            <Text style={styles.totalPrice}>₹{total.toLocaleString('en-IN')}</Text>
-          </View>
-          <Pressable
-            style={({ pressed }) => [styles.bookNowBtn, pressed && { opacity: 0.85 }]}
-            onPress={() => router.push('/booking/cart')}
-          >
-            <Text style={styles.bookNowText}>Book Now</Text>
-          </Pressable>
+      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.sm }]}>
+        <View>
+          <Text style={styles.startingFrom}>Total Amount</Text>
+          <Text style={styles.totalPrice}>₹{total.toLocaleString('en-IN')}</Text>
         </View>
-      </LinearGradient>
+        <Pressable style={({ pressed }) => [styles.bookNowBtn, pressed && { opacity: 0.85 }]} onPress={() => router.push('/booking/cart')}>
+          <Text style={styles.bookNowText}>Book Now</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  hero: { height: 240, alignItems: 'center', justifyContent: 'center' },
-  backBtn: { position: 'absolute', top: 56, left: spacing.lg, padding: spacing.sm },
-  backIcon: { fontSize: 24, color: colors.textPrimary },
-  heroEmoji: { fontSize: 64 },
-  heroBadgeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
-  typeBadge: { backgroundColor: 'rgba(255,121,44,0.2)', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: 'rgba(255,121,44,0.4)' },
-  typeBadgeText: { ...typography.badge, color: colors.primary },
-  catBadge: { backgroundColor: 'rgba(6,193,103,0.15)', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: 'rgba(6,193,103,0.3)' },
-  catBadgeText: { ...typography.badge, color: colors.success },
+  hero: { height: 230, alignItems: 'center', justifyContent: 'center' },
+  backBtn: { position: 'absolute', left: spacing.lg, width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
+  heroBadgeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+  typeBadge: { backgroundColor: 'rgba(255,255,255,0.7)', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full },
+  typeBadgeText: { ...typography.badge, color: colors.maroon },
+  catBadge: { backgroundColor: 'rgba(255,255,255,0.7)', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full },
+  catBadgeText: { ...typography.badge, color: colors.maroon },
   body: { padding: spacing.lg },
   title: { ...typography.displayMedium, color: colors.textPrimary, marginBottom: spacing.sm },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg, flexWrap: 'wrap' },
-  metaItem: { ...typography.bodySmall, color: colors.textSecondary },
-  metaDot: { color: colors.textMuted, marginHorizontal: spacing.xs },
-  description: { ...typography.bodyMedium, color: colors.textSecondary, lineHeight: 22, marginBottom: spacing.lg },
-  sectionTitle: { ...typography.headlineSmall, color: colors.textPrimary, marginBottom: spacing.md, marginTop: spacing.sm },
-  about: { ...typography.bodyMedium, color: colors.textMuted, lineHeight: 22, marginBottom: spacing.lg },
+  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { ...typography.bodySmall, color: colors.textSecondary },
+  description: { ...typography.bodyMedium, color: colors.textSecondary, lineHeight: 22 },
+  sectionTitle: { ...typography.headlineSmall, color: colors.textPrimary, marginBottom: spacing.md, marginTop: spacing.xxl },
+  about: { ...typography.bodyMedium, color: colors.textMuted, lineHeight: 22 },
   // Package
-  packageCard: { backgroundColor: colors.cardBg, borderRadius: borderRadius.lg, padding: spacing.lg, marginBottom: spacing.md, borderWidth: 1.5, borderColor: colors.cardBorder, position: 'relative' },
-  packageCardSelected: { borderColor: colors.primary, backgroundColor: 'rgba(255,121,44,0.06)' },
-  packageHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs },
-  packageTitle: { ...typography.titleLarge, color: colors.textPrimary, flex: 1 },
-  popularBadge: { backgroundColor: 'rgba(255,121,44,0.2)', paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: borderRadius.sm },
+  packageCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.lg, marginBottom: spacing.md, borderWidth: 1.5, borderColor: colors.cardBorder },
+  packageCardSelected: { borderColor: colors.primary, backgroundColor: 'rgba(242,112,10,0.05)' },
+  packageContent: { flex: 1, paddingRight: spacing.md },
+  packageHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },
+  packageTitle: { ...typography.titleLarge, color: colors.textPrimary, flexShrink: 1 },
+  popularBadge: { backgroundColor: 'rgba(242,112,10,0.14)', paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: borderRadius.sm },
   popularText: { ...typography.badge, color: colors.primary, fontSize: 9 },
-  packagePrice: { ...typography.price, color: colors.accentYellow, marginBottom: spacing.sm },
-  coupon: { ...typography.labelSmall, color: colors.success, marginBottom: spacing.sm },
+  packagePrice: { ...typography.price, color: colors.primary, marginBottom: spacing.xs },
+  couponRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing.sm },
+  coupon: { ...typography.labelSmall, color: colors.success },
   packageDetail: { marginTop: spacing.sm },
   detailHeading: { ...typography.titleSmall, color: colors.textSecondary, marginBottom: 4 },
   detailLabel: { color: colors.primary },
-  detailItem: { ...typography.bodySmall, color: colors.textMuted, marginLeft: spacing.sm, marginBottom: 2 },
-  packageRadio: { position: 'absolute', top: spacing.lg, right: spacing.lg, width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.textMuted, alignItems: 'center', justifyContent: 'center' },
-  packageRadioSelected: { borderColor: colors.primary },
-  packageRadioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+  detailItemRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  detailItem: { ...typography.bodySmall, color: colors.textMuted },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.textMuted, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  radioSelected: { borderColor: colors.primary },
+  radioInner: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.primary },
   // Offerings
-  offeringRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, backgroundColor: colors.cardBg, borderRadius: borderRadius.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.cardBorder },
-  offeringRowSelected: { borderColor: colors.success, backgroundColor: 'rgba(6,193,103,0.06)' },
-  checkbox: { width: 22, height: 22, borderRadius: 4, borderWidth: 2, borderColor: colors.cardBorder, marginRight: spacing.md, alignItems: 'center', justifyContent: 'center' },
+  offeringRow: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, backgroundColor: colors.surface, borderRadius: borderRadius.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.cardBorder },
+  offeringRowSelected: { borderColor: colors.success, backgroundColor: 'rgba(22,163,74,0.05)' },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.cardBorderLight, marginRight: spacing.md, alignItems: 'center', justifyContent: 'center' },
   checkboxSelected: { backgroundColor: colors.success, borderColor: colors.success },
-  checkmark: { color: '#fff', fontSize: 14, fontWeight: '700' },
   offeringName: { ...typography.bodyMedium, color: colors.textPrimary, flex: 1 },
-  offeringPrice: { ...typography.titleSmall, color: colors.accentYellow },
+  offeringPrice: { ...typography.titleSmall, color: colors.primary },
   // FAQ
-  faqItem: { backgroundColor: colors.cardBg, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.cardBorder },
-  faqQuestion: { flexDirection: 'row', alignItems: 'flex-start' },
+  faqItem: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.cardBorder },
+  faqQuestion: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   faqQ: { ...typography.bodyMedium, color: colors.textPrimary, flex: 1, fontWeight: '600' },
-  faqChevron: { color: colors.textMuted, fontSize: 12, marginLeft: spacing.sm, marginTop: 2 },
   faqA: { ...typography.bodySmall, color: colors.textMuted, marginTop: spacing.sm, lineHeight: 18 },
   // Bottom CTA
-  bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingTop: spacing.xxl, paddingBottom: spacing.xxxl, paddingHorizontal: spacing.lg },
-  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  bottomBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingTop: spacing.md, paddingHorizontal: spacing.lg,
+    backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.cardBorderLight,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 12,
+  },
   startingFrom: { ...typography.labelSmall, color: colors.textMuted },
-  totalPrice: { ...typography.displayMedium, color: colors.accentYellow, fontSize: 22 },
-  bookNowBtn: { backgroundColor: colors.success, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.lg, borderRadius: borderRadius.xl },
+  totalPrice: { ...typography.displayMedium, color: colors.primary, fontSize: 22 },
+  bookNowBtn: { backgroundColor: colors.success, paddingHorizontal: spacing.xxxl, paddingVertical: spacing.md, borderRadius: borderRadius.full },
   bookNowText: { ...typography.button, color: '#fff', fontSize: 16 },
 });

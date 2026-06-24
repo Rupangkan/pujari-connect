@@ -69,19 +69,19 @@ const styles = StyleSheet.create({
   placeholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: colors.surfaceContainerHigh,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: colors.goldLight,
   },
   emoji: {
     fontSize: 28,
   },
   ring: {
     position: 'absolute',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 121, 44, 0.4)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(201, 154, 62, 0.40)',
     top: -2,
     left: -2,
   },
@@ -89,5 +89,6 @@ const styles = StyleSheet.create({
     ...typography.labelMedium,
     color: colors.textSecondary,
     textAlign: 'center',
+    fontWeight: '600',
   },
 });

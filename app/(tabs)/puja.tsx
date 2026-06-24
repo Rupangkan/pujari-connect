@@ -1,26 +1,27 @@
 /**
- * PUJA Tab — Browse all pujas with category filter
- * Ported from MyPandit's PujaScreen.kt
+ * PUJA Tab — browse all pujas with category filter (2-column grid).
  */
 import React, { useState } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet, FlatList, Pressable,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, ScrollView, StyleSheet, FlatList, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { colors } from '@/constants/colors';
-import { typography, spacing, borderRadius } from '@/constants/typography';
+import { typography, spacing } from '@/constants/typography';
+import { Screen } from '@/components/layout/Screen';
 import { EventCard } from '@/components/cards/EventCard';
 import { Chip } from '@/components/ui/Chip';
 import { SectionHeader } from '@/components/sections/SectionHeader';
 import { SearchBar } from '@/components/layout/SearchBar';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const GRID_GAP = 12;
+const COLUMN_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - GRID_GAP) / 2;
+
 const CATEGORIES = ['All', 'Home', 'Personal', 'Festival', 'Temple', 'Ancestral'];
 
 const ALL_PUJAS = [
-  { id: '1', title: 'Griha Pravesh Puja', dateTime: 'Book Anytime', venue: 'At Your Home', price: '₹5,100', category: 'Home', discountText: 'Most Popular' },
+  { id: '1', title: 'Griha Pravesh Puja', dateTime: 'Book Anytime', venue: 'At Your Home', price: '₹5,100', category: 'Home', discountText: 'Popular' },
   { id: '2', title: 'Satyanarayan Puja', dateTime: 'Daily', venue: 'Kashi / Online', price: '₹3,500', category: 'Personal' },
-  { id: '3', title: 'Lakshmi Puja', dateTime: '20 Sep - 5 Oct', venue: 'Haridwar', price: '₹2,100', category: 'Festival', discountText: '15% OFF Online' },
+  { id: '3', title: 'Lakshmi Puja', dateTime: '20 Sep - 5 Oct', venue: 'Haridwar', price: '₹2,100', category: 'Festival', discountText: '15% OFF' },
   { id: '4', title: 'Ganesh Puja', dateTime: '1 Sep - 10 Oct', venue: 'Mumbai / Online', price: '₹2,500', category: 'Personal' },
   { id: '5', title: 'Pitru Shanti Mahapuja', dateTime: '2 Oct - 1 Nov', venue: 'Gaya, Bihar', price: '₹5,693', category: 'Ancestral', discountText: 'Includes Tarpan' },
   { id: '6', title: 'Ganesh Chaturthi Puja', dateTime: '7 Sep 2026', venue: 'Your Home', price: '₹2,500', category: 'Home' },
@@ -39,60 +40,53 @@ export default function PujaScreen() {
     : ALL_PUJAS.filter(p => p.category === selectedCategory);
 
   return (
-    <LinearGradient colors={[colors.background, colors.surface]} style={styles.container}>
+    <Screen>
       <View style={styles.header}>
         <Text style={styles.title}>Puja Booking</Text>
         <Text style={styles.subtitle}>Choose from our curated rituals</Text>
       </View>
       <SearchBar onPress={() => router.push('/search')} placeholder="Search pujas by name, category..." />
 
-      {/* Category filter chips */}
       <FlatList
         data={CATEGORIES}
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipList}
         contentContainerStyle={styles.chipContainer}
         keyExtractor={item => item}
         renderItem={({ item }) => (
-          <Chip
-            label={item}
-            selected={selectedCategory === item}
-            onPress={() => setSelectedCategory(item)}
-          />
+          <Chip label={item} selected={selectedCategory === item} onPress={() => setSelectedCategory(item)} />
         )}
       />
 
-      {/* Puja grid - 2 columns */}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <SectionHeader title={`${filtered.length} Pujas ${selectedCategory !== 'All' ? `· ${selectedCategory}` : 'Available'}`} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
+        <SectionHeader title={`${filtered.length} ${selectedCategory !== 'All' ? selectedCategory : 'Pujas'} Available`} />
         <View style={styles.grid}>
-          {filtered.map((item, index) => (
+          {filtered.map((item) => (
             <EventCard
               key={item.id}
               event={item}
-              width={(styles.grid.width - spacing.lg * 2 - 12) / 2}
+              width={COLUMN_WIDTH}
               compact
               onPress={() => router.push(`/puja/${item.id}`)}
             />
           ))}
         </View>
-        <View style={{ height: 100 }} />
       </ScrollView>
-    </LinearGradient>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.xl + 24, paddingBottom: spacing.md },
+  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.md },
   title: { ...typography.displayMedium, color: colors.textPrimary },
   subtitle: { ...typography.bodyMedium, color: colors.textMuted, marginTop: 4 },
+  chipList: { flexGrow: 0 },
   chipContainer: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   grid: {
-    flexDirection: 'row' as const,
-    flexWrap: 'wrap' as const,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: spacing.lg,
-    gap: 12,
-    width: '100%',
+    gap: GRID_GAP,
   },
 });

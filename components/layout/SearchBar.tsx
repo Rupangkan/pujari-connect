@@ -1,30 +1,28 @@
 /**
- * SearchBar — Location-aware search bar for the home screen
- * Ported from MyPandit's HomeActivity search bar
+ * SearchBar + LocationHeader — top-of-home controls.
+ * Light theme, vector icons, no emojis.
  */
 
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Icon } from '@/components/ui/Icon';
 
 interface SearchBarProps {
   onPress?: () => void;
   placeholder?: string;
 }
 
-export function SearchBar({ onPress, placeholder = 'Search for Griha Puja, Samagri...' }: SearchBarProps) {
+export function SearchBar({ onPress, placeholder = 'Search for pujas, samagri...' }: SearchBarProps) {
   return (
     <Pressable onPress={onPress} style={styles.container}>
-      <Text style={styles.icon}>🔍</Text>
-      <Text style={styles.placeholder}>{placeholder}</Text>
+      <Icon name="search-outline" size={18} color={colors.textMuted} />
+      <Text style={styles.placeholder} numberOfLines={1}>{placeholder}</Text>
     </Pressable>
   );
 }
 
-/**
- * LocationHeader — Shows current location at top of home screen
- */
 interface LocationHeaderProps {
   location: string;
   onLocationPress?: () => void;
@@ -34,22 +32,24 @@ interface LocationHeaderProps {
 export function LocationHeader({ location, onLocationPress, onProfilePress }: LocationHeaderProps) {
   return (
     <View style={styles.locationContainer}>
-      <Pressable onPress={onLocationPress} style={styles.locationLeft}>
-        <Text style={styles.locationIcon}>📍</Text>
-        <View>
-          <Text style={styles.locationLabel}>Location</Text>
-          <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+      <Pressable onPress={onLocationPress} style={styles.locationLeft} hitSlop={6}>
+        <View style={styles.pin}>
+          <Icon name="location-sharp" size={16} color={colors.primary} />
         </View>
-        <Text style={styles.chevron}>▼</Text>
+        <View style={styles.locationTextWrap}>
+          <Text style={styles.locationLabel}>DELIVER TO</Text>
+          <View style={styles.locationRow}>
+            <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+            <Icon name="chevron-down" size={14} color={colors.textSecondary} />
+          </View>
+        </View>
       </Pressable>
       <Pressable
         onPress={onProfilePress}
-        style={({ pressed }) => [
-          styles.profileButton,
-          pressed && { opacity: 0.7 },
-        ]}
+        hitSlop={8}
+        style={({ pressed }) => [styles.profileButton, pressed && { opacity: 0.7 }]}
       >
-        <Text style={styles.profileIcon}>👤</Text>
+        <Icon name="person-circle-outline" size={30} color={colors.textSecondary} />
       </Pressable>
     </View>
   );
@@ -60,18 +60,20 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.cardBg,
-    borderRadius: borderRadius.xl,
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.full,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.md,
-  },
-  icon: {
-    fontSize: 16,
-    marginRight: spacing.sm,
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 1,
   },
   placeholder: {
     ...typography.bodyMedium,
@@ -85,42 +87,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
   },
   locationLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    gap: spacing.sm,
   },
-  locationIcon: {
-    fontSize: 20,
-    marginRight: spacing.sm,
+  pin: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(242, 112, 10, 0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  locationTextWrap: { flex: 1 },
   locationLabel: {
     ...typography.labelSmall,
     color: colors.textMuted,
+    letterSpacing: 0.6,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   locationText: {
     ...typography.titleSmall,
     color: colors.textPrimary,
-    maxWidth: 250,
-  },
-  chevron: {
-    fontSize: 10,
-    color: colors.textMuted,
-    marginLeft: spacing.xs,
+    flexShrink: 1,
   },
   profileButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.cardBg,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  profileIcon: {
-    fontSize: 18,
   },
 });

@@ -17,9 +17,12 @@ interface SectionHeaderProps {
 export function SectionHeader({ title, onViewAll, viewAllLabel = 'View All' }: SectionHeaderProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <View style={styles.titleRow}>
+        <View style={styles.accent} />
+        <Text style={styles.title}>{title}</Text>
+      </View>
       {onViewAll && (
-        <Pressable onPress={onViewAll} hitSlop={8}>
+        <Pressable onPress={onViewAll} hitSlop={8} style={styles.viewAllBtn}>
           <Text style={styles.viewAll}>{viewAllLabel} →</Text>
         </Pressable>
       )}
@@ -33,14 +36,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.md,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  accent: {
+    width: 3,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+    marginRight: spacing.sm,
   },
   title: {
     ...typography.headlineSmall,
     color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  viewAllBtn: {
+    paddingLeft: spacing.sm,
   },
   viewAll: {
     ...typography.labelMedium,
     color: colors.primary,
+    fontWeight: '600',
   },
 });

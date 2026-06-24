@@ -1,14 +1,13 @@
 /**
- * All Pujas — Full listing with category/type/price filters
+ * All Pujas — full listing with category/type/sort filters.
  */
 import React, { useState, useMemo } from 'react';
-import {
-  View, Text, ScrollView, StyleSheet, FlatList, Pressable, Dimensions,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, ScrollView, StyleSheet, FlatList, Pressable, Dimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Screen } from '@/components/layout/Screen';
+import { Icon } from '@/components/ui/Icon';
 import { Chip } from '@/components/ui/Chip';
 import { EventCard } from '@/components/cards/EventCard';
 
@@ -32,7 +31,7 @@ const ALL_PUJAS = [
 const CATEGORIES = ['All', 'HOME', 'PERSONAL', 'FESTIVAL', 'TEMPLE', 'ANCESTRAL'];
 const TYPES = ['All', 'ONLINE', 'OFFLINE', 'BOTH'];
 const CATEGORY_LABELS: Record<string, string> = { All: 'All', HOME: 'Home', PERSONAL: 'Personal', FESTIVAL: 'Festival', TEMPLE: 'Temple', ANCESTRAL: 'Ancestral' };
-const TYPE_LABELS: Record<string, string> = { All: 'All Types', ONLINE: '🌐 Online', OFFLINE: '🏠 In-Person', BOTH: '🔀 Both' };
+const TYPE_LABELS: Record<string, string> = { All: 'All Types', ONLINE: 'Online', OFFLINE: 'In-Person', BOTH: 'Both' };
 const SORT_OPTIONS = ['Featured', 'Price: Low to High', 'Price: High to Low'];
 
 export default function AllPujasScreen() {
@@ -55,39 +54,37 @@ export default function AllPujasScreen() {
   }, [selectedCategory, selectedType, selectedSort]);
 
   return (
-    <LinearGradient colors={[colors.background, colors.surface]} style={styles.container}>
-      {/* Header */}
+    <Screen>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backIcon}>←</Text>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+          <Icon name="arrow-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>All Pujas</Text>
           <Text style={styles.subtitle}>{filtered.length} rituals available</Text>
         </View>
         <Pressable onPress={() => setShowSortMenu(s => !s)} style={styles.sortBtn}>
-          <Text style={styles.sortIcon}>⇅</Text>
+          <Icon name="swap-vertical" size={16} color={colors.textSecondary} />
           <Text style={styles.sortLabel}>Sort</Text>
         </Pressable>
       </View>
 
-      {/* Sort dropdown */}
       {showSortMenu && (
         <View style={styles.sortMenu}>
           {SORT_OPTIONS.map(opt => (
             <Pressable key={opt} onPress={() => { setSelectedSort(opt); setShowSortMenu(false); }} style={[styles.sortOption, selectedSort === opt && styles.sortOptionActive]}>
               <Text style={[styles.sortOptionText, selectedSort === opt && styles.sortOptionTextActive]}>{opt}</Text>
-              {selectedSort === opt && <Text style={styles.sortCheck}>✓</Text>}
+              {selectedSort === opt && <Icon name="checkmark" size={16} color={colors.primary} />}
             </Pressable>
           ))}
         </View>
       )}
 
-      {/* Category chips */}
       <FlatList
         data={CATEGORIES}
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipList}
         contentContainerStyle={styles.chipRow}
         keyExtractor={i => i}
         renderItem={({ item }) => (
@@ -95,11 +92,11 @@ export default function AllPujasScreen() {
         )}
       />
 
-      {/* Type chips */}
       <FlatList
         data={TYPES}
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipList}
         contentContainerStyle={styles.typeChipRow}
         keyExtractor={i => i}
         renderItem={({ item }) => (
@@ -107,8 +104,7 @@ export default function AllPujasScreen() {
         )}
       />
 
-      {/* Grid */}
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {filtered.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🪔</Text>
@@ -118,42 +114,35 @@ export default function AllPujasScreen() {
         ) : (
           <View style={styles.grid}>
             {filtered.map(item => (
-              <EventCard
-                key={item.id}
-                event={item}
-                width={CARD_W}
-                compact
-                onPress={() => router.push(`/puja/${item.id}`)}
-              />
+              <EventCard key={item.id} event={item} width={CARD_W} compact onPress={() => router.push(`/puja/${item.id}`)} />
             ))}
           </View>
         )}
-        <View style={{ height: 100 }} />
+        <View style={{ height: spacing.xxxl }} />
       </ScrollView>
-    </LinearGradient>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: spacing.xl + 24, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.md, gap: spacing.sm },
   backBtn: { padding: spacing.xs },
-  backIcon: { fontSize: 24, color: colors.textPrimary, marginRight: spacing.md },
   headerText: { flex: 1 },
   title: { ...typography.headlineLarge, color: colors.textPrimary },
   subtitle: { ...typography.bodySmall, color: colors.textMuted },
-  sortBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.sm, borderWidth: 1, borderColor: colors.cardBorder },
-  sortIcon: { fontSize: 16, marginRight: 4 },
-  sortLabel: { ...typography.labelMedium, color: colors.textSecondary },
-  sortMenu: { position: 'absolute', top: 120, right: spacing.lg, zIndex: 100, backgroundColor: colors.surfaceContainerHighest, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.cardBorder, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 10 },
-  sortOption: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minWidth: 180, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
-  sortOptionActive: { backgroundColor: 'rgba(255,121,44,0.1)' },
+  sortBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.cardBorder },
+  sortLabel: { ...typography.labelMedium, color: colors.textSecondary, fontWeight: '600' },
+  sortMenu: { position: 'absolute', top: 72, right: spacing.lg, zIndex: 100, backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.cardBorderLight, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 14, elevation: 12 },
+  sortOption: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.lg, minWidth: 200 },
+  sortOptionActive: { backgroundColor: 'rgba(242,112,10,0.08)' },
   sortOptionText: { ...typography.bodyMedium, color: colors.textSecondary },
   sortOptionTextActive: { color: colors.primary, fontWeight: '600' },
-  sortCheck: { color: colors.primary, fontWeight: '700' },
-  chipRow: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
-  typeChipRow: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, paddingTop: 4 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, gap: 12, marginTop: spacing.sm },
+  chipList: { flexGrow: 0 },
+  chipRow: { paddingHorizontal: spacing.lg, paddingTop: spacing.xs },
+  typeChipRow: { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, paddingTop: spacing.sm },
+  scroll: { flex: 1 },
+  scrollContent: { paddingTop: spacing.sm },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, gap: 12 },
   empty: { alignItems: 'center', paddingVertical: spacing.massive },
   emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
   emptyTitle: { ...typography.headlineSmall, color: colors.textPrimary, marginBottom: spacing.sm },

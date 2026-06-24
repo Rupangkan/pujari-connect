@@ -8,7 +8,8 @@
     "scheme": "pujariconnect",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pujariconnect.app"
     },
     "android": {
       "adaptiveIcon": {

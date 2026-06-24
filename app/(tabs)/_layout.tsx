@@ -1,24 +1,18 @@
 /**
- * Tab Layout — Custom bottom tab navigator with 4 tabs
- * Ported from MyPandit's HomeActivity tab structure
+ * Tab Layout — bottom tab navigator (4 top-level tabs).
+ * Uses Ionicons + labels for a clean, native-feeling, non-truncated bar.
  */
 import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
 import { colors } from '@/constants/colors';
 import { typography } from '@/constants/typography';
 
-interface TabIconProps {
-  emoji: string;
-  label: string;
-  focused: boolean;
-}
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-function TabIcon({ emoji, label, focused }: TabIconProps) {
-  return (
-    <View style={[styles.tabItem, focused && styles.tabItemFocused]}>
-      <Text style={styles.tabEmoji}>{emoji}</Text>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{label}</Text>
-    </View>
+function tabIcon(active: IoniconName, inactive: IoniconName) {
+  return ({ focused, color, size }: { focused: boolean; color: string; size: number }) => (
+    <Ionicons name={focused ? active : inactive} size={size ?? 24} color={color} />
   );
 }
 
@@ -27,70 +21,44 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: colors.accentYellow,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopWidth: 1,
+          borderTopColor: colors.hairlineGold,
+          height: Platform.OS === 'ios' ? 88 : 68,
+          paddingTop: 8,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 8,
+        },
+        tabBarLabelStyle: {
+          ...typography.labelSmall,
+          fontWeight: '600',
+          marginTop: 2,
+        },
+        tabBarItemStyle: { paddingVertical: 4 },
       }}
     >
       <Tabs.Screen
         name="index"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="✨" label="For You" focused={focused} />,
-        }}
+        options={{ title: 'For You', tabBarIcon: tabIcon('sparkles', 'sparkles-outline') }}
       />
       <Tabs.Screen
         name="pujari"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🙏" label="Pujari" focused={focused} />,
-        }}
+        options={{ title: 'Pujari', tabBarIcon: tabIcon('person', 'person-outline') }}
       />
       <Tabs.Screen
         name="puja"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🪔" label="Puja" focused={focused} />,
-        }}
+        options={{ title: 'Puja', tabBarIcon: tabIcon('flame', 'flame-outline') }}
       />
       <Tabs.Screen
         name="samagri"
-        options={{
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📿" label="Samagri" focused={focused} />,
-        }}
+        options={{ title: 'Samagri', tabBarIcon: tabIcon('basket', 'basket-outline') }}
       />
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: colors.surfaceContainerHigh,
-    borderTopWidth: 1,
-    borderTopColor: colors.cardBorder,
-    height: 72,
-    paddingBottom: 8,
-    paddingTop: 4,
-  },
-  tabItem: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    minWidth: 64,
-  },
-  tabItemFocused: {
-    backgroundColor: 'rgba(255, 237, 41, 0.1)',
-  },
-  tabEmoji: {
-    fontSize: 22,
-    marginBottom: 2,
-  },
-  tabLabel: {
-    ...typography.labelSmall,
-    color: colors.textMuted,
-  },
-  tabLabelFocused: {
-    color: colors.accentYellow,
-    fontWeight: '700',
-  },
-});

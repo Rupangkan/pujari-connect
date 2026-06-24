@@ -1,14 +1,13 @@
 /**
- * PujariCard — Pujari profile card for carousels
- * Ported from MyPandit's PujariCard composable
+ * PujariCard — pujari profile card for carousels. Light theme.
  */
 
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Icon } from '@/components/ui/Icon';
 import { Pujari } from '@/types';
 
 interface PujariCardProps {
@@ -22,109 +21,85 @@ export function PujariCard({ pujari, onPress, onBook, width = 280 }: PujariCardP
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.container,
-        { width },
-        pressed && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.container, { width }, pressed && styles.pressed]}
     >
-      <LinearGradient
-        colors={['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)']}
-        style={styles.gradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        {/* Header with image and info */}
-        <View style={styles.header}>
-          <View style={styles.avatarContainer}>
-            {pujari.imageUrl ? (
-              <Image
-                source={{ uri: pujari.imageUrl }}
-                style={styles.avatar}
-                contentFit="cover"
-                transition={300}
-              />
-            ) : (
-              <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarInitial}>
-                  {pujari.name.charAt(0)}
-                </Text>
-              </View>
-            )}
-            {pujari.isVerified && (
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedText}>✓</Text>
-              </View>
-            )}
-          </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.avatarContainer}>
+          {pujari.imageUrl ? (
+            <Image source={{ uri: pujari.imageUrl }} style={styles.avatar} contentFit="cover" transition={300} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>{pujari.name.charAt(0)}</Text>
+            </View>
+          )}
+          {pujari.isVerified && (
+            <View style={styles.verifiedBadge}>
+              <Icon name="checkmark" size={11} color={colors.textOnPrimary} />
+            </View>
+          )}
+        </View>
 
-          <View style={styles.info}>
-            <Text style={styles.name} numberOfLines={1}>{pujari.name}</Text>
-            <Text style={styles.specialization} numberOfLines={1}>
-              {pujari.specialization}
-            </Text>
-            <View style={styles.statsRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statIcon}>⭐</Text>
-                <Text style={styles.statValue}>{pujari.rating.toFixed(1)}</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statIcon}>📋</Text>
-                <Text style={styles.statValue}>{pujari.totalBookings}</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statIcon}>🕐</Text>
-                <Text style={styles.statValue}>{pujari.experience}yr</Text>
-              </View>
+        <View style={styles.info}>
+          <Text style={styles.name} numberOfLines={1}>{pujari.name}</Text>
+          <Text style={styles.specialization} numberOfLines={1}>{pujari.specialization}</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.stat}>
+              <Icon name="star" size={12} color={colors.starFilled} />
+              <Text style={styles.statValue}>{pujari.rating.toFixed(1)}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Icon name="albums-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.statValue}>{pujari.totalBookings}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Icon name="time-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.statValue}>{pujari.experience}yr</Text>
             </View>
           </View>
         </View>
+      </View>
 
-        {/* Bio */}
-        <Text style={styles.bio} numberOfLines={2}>{pujari.bio}</Text>
+      <Text style={styles.bio} numberOfLines={2}>{pujari.bio}</Text>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <View>
-            <Text style={styles.rateLabel}>Hourly Rate</Text>
-            <Text style={styles.rate}>₹{pujari.hourlyRate.toLocaleString()}</Text>
-          </View>
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation();
-              onBook?.();
-            }}
-            style={({ pressed }) => [
-              styles.bookButton,
-              pressed && styles.bookButtonPressed,
-            ]}
-          >
-            <Text style={styles.bookText}>Book</Text>
-          </Pressable>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <View>
+          <Text style={styles.rateLabel}>Hourly Rate</Text>
+          <Text style={styles.rate}>₹{pujari.hourlyRate.toLocaleString('en-IN')}</Text>
         </View>
+        <Pressable
+          onPress={(e) => { e.stopPropagation(); onBook?.(); }}
+          style={({ pressed }) => [styles.bookButton, pressed && styles.bookButtonPressed]}
+        >
+          <Text style={styles.bookText}>Book</Text>
+        </Pressable>
+      </View>
 
-        {/* Ethnicity badge */}
-        <View style={styles.ethnicityBadge}>
-          <Text style={styles.ethnicityText}>{pujari.ethnicity}</Text>
-        </View>
-      </LinearGradient>
+      {/* Ethnicity badge */}
+      <View style={styles.ethnicityBadge}>
+        <Text style={styles.ethnicityText}>{pujari.ethnicity}</Text>
+      </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    overflow: 'hidden',
+    padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.cardBorder,
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    elevation: 2,
   },
   pressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
-  },
-  gradient: {
-    padding: spacing.md,
+    opacity: 0.96,
+    transform: [{ scale: 0.985 }],
   },
   header: {
     flexDirection: 'row',
@@ -139,10 +114,10 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: colors.goldLight,
   },
   avatarPlaceholder: {
-    backgroundColor: colors.surfaceContainerHigh,
+    backgroundColor: 'rgba(242, 112, 10, 0.10)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -163,18 +138,12 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.surface,
   },
-  verifiedText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  info: {
-    flex: 1,
-  },
+  info: { flex: 1 },
   name: {
     ...typography.titleMedium,
     color: colors.textPrimary,
     marginBottom: 2,
+    marginRight: 64,
   },
   specialization: {
     ...typography.bodySmall,
@@ -189,9 +158,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-  },
-  statIcon: {
-    fontSize: 12,
   },
   statValue: {
     ...typography.labelSmall,
@@ -213,36 +179,34 @@ const styles = StyleSheet.create({
   },
   rate: {
     ...typography.price,
-    color: colors.accentYellow,
+    color: colors.primary,
     fontSize: 16,
   },
   bookButton: {
-    backgroundColor: colors.success,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
-    borderRadius: borderRadius.sm,
+    borderRadius: borderRadius.full,
   },
-  bookButtonPressed: {
-    opacity: 0.8,
-  },
+  bookButtonPressed: { opacity: 0.85 },
   bookText: {
     ...typography.button,
-    color: '#FFFFFF',
+    color: colors.textOnPrimary,
     fontSize: 14,
   },
   ethnicityBadge: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    backgroundColor: 'rgba(255, 237, 41, 0.15)',
+    top: spacing.md,
+    right: spacing.md,
+    backgroundColor: 'rgba(201, 154, 62, 0.14)',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xxs,
     borderRadius: borderRadius.xs,
     borderWidth: 1,
-    borderColor: 'rgba(255, 237, 41, 0.3)',
+    borderColor: colors.hairlineGold,
   },
   ethnicityText: {
     ...typography.badge,
-    color: colors.accentYellow,
+    color: colors.goldDark,
   },
 });

@@ -4,10 +4,12 @@
 
 import { Platform } from 'react-native';
 
+// Helvetica per design spec. iOS ships Helvetica Neue natively; Android has no
+// Helvetica, so fall back to its closest neo-grotesque system face.
 const fontFamily = Platform.select({
-  ios: 'System',
-  android: 'Roboto',
-  default: 'System',
+  ios: 'Helvetica Neue',
+  android: 'sans-serif',
+  default: 'Helvetica Neue',
 });
 
 export const typography = {

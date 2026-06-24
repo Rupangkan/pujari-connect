@@ -1,5 +1,6 @@
 /**
- * Chip — Filter chip component for category/ethnicity selection
+ * Chip — filter chip for category / ethnicity selection.
+ * Fixed height prevents the horizontal list from stretching chips vertically.
  */
 
 import React from 'react';
@@ -25,11 +26,10 @@ export function Chip({ label, selected = false, onPress, size = 'md' }: ChipProp
         pressed && styles.pressed,
       ]}
     >
-      <Text style={[
-        styles.label,
-        size === 'sm' && styles.labelSm,
-        selected && styles.selectedLabel,
-      ]}>
+      <Text
+        style={[styles.label, selected && styles.selectedLabel]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </Pressable>
@@ -38,34 +38,32 @@ export function Chip({ label, selected = false, onPress, size = 'md' }: ChipProp
 
 const styles = StyleSheet.create({
   container: {
+    height: 40,
+    justifyContent: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    backgroundColor: colors.cardBg,
+    backgroundColor: colors.surface,
     marginRight: spacing.sm,
   },
   containerSm: {
+    height: 34,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
   },
   selected: {
-    backgroundColor: 'rgba(255, 237, 41, 0.15)',
-    borderColor: colors.accentYellow,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   pressed: {
-    opacity: 0.8,
+    opacity: 0.85,
   },
   label: {
     ...typography.labelMedium,
     color: colors.textSecondary,
-  },
-  labelSm: {
-    ...typography.labelSmall,
+    fontWeight: '600',
   },
   selectedLabel: {
-    color: colors.accentYellow,
-    fontWeight: '700',
+    color: colors.textOnPrimary,
   },
 });

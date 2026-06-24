@@ -5,8 +5,9 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { colors } from '@/constants/colors';
 
@@ -23,15 +24,16 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <StatusBar style="light" backgroundColor={colors.background} />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          animation: 'slide_from_right',
-        }}
-      >
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={styles.container}>
+        <StatusBar style="dark" backgroundColor={colors.background} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            animation: 'slide_from_right',
+          }}
+        >
         <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
         <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
         <Stack.Screen name="puja/[id]" options={{ animation: 'slide_from_right' }} />
@@ -43,8 +45,9 @@ export default function RootLayout() {
         <Stack.Screen name="booking/payment" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="profile" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="search" options={{ animation: 'fade' }} />
-      </Stack>
-    </GestureHandlerRootView>
+        </Stack>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
 

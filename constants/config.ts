@@ -6,12 +6,13 @@ import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
   if (__DEV__) {
-    // Android emulator uses 10.0.2.2 to reach host machine
-    // iOS simulator and physical devices can use localhost
+    // Android emulator uses 10.0.2.2 to reach host machine.
+    // iOS simulator can use localhost, but a PHYSICAL device must use the
+    // Mac's LAN IP (localhost on the phone = the phone itself).
     return Platform.select({
       android: 'http://10.0.2.2:3001',
-      ios: 'http://localhost:3001',
-      default: 'http://localhost:3001',
+      ios: 'http://192.168.1.5:3001',
+      default: 'http://192.168.1.5:3001',
     });
   }
   return 'https://api.pujariconnect.com'; // Production URL
