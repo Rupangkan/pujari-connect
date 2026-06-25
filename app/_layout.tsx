@@ -43,7 +43,12 @@ export default function RootLayout() {
         <Stack.Screen name="booking/cart" options={{ animation: 'slide_from_bottom' }} />
         <Stack.Screen name="booking/address" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="booking/payment" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="profile" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="profile/index" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="profile/edit" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="profile/payments" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="profile/notifications" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="profile/help" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="profile/terms" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="search" options={{ animation: 'fade' }} />
         </Stack>
       </GestureHandlerRootView>

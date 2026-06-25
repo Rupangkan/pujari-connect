@@ -1,16 +1,19 @@
 /**
- * Search Screen — Full-text search across pujas and pujaris
+ * Search Screen — search across pujas. Light Ivory & Gold theme.
  */
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, FlatList, Pressable,
-  Keyboard, ScrollView,
+  View, Text, StyleSheet, TextInput, FlatList, Pressable, Keyboard, ScrollView, Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
+import { Screen } from '@/components/layout/Screen';
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { EventCard } from '@/components/cards/EventCard';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const RESULT_W = SCREEN_WIDTH - spacing.lg * 2;
 
 const ALL_PUJAS = [
   { id: '1', title: 'Griha Pravesh Puja', dateTime: 'Book Anytime', venue: 'At Your Home', price: '₹5,100', category: 'HOME', keywords: 'home griha pravesh new house' },
@@ -28,6 +31,13 @@ const ALL_PUJAS = [
 
 const QUICK_SEARCHES = ['Griha Pravesh', 'Ganesh Puja', 'Navratri', 'Lakshmi Puja', 'Rudrabhishek', 'Vastu Shanti'];
 const RECENT_SEARCHES = ['Satyanarayan Puja', 'Pitru Shanti'];
+const CATEGORIES: { icon: IconName; label: string; cat: string }[] = [
+  { icon: 'home-outline', label: 'Home Pujas', cat: 'HOME' },
+  { icon: 'person-outline', label: 'Personal Pujas', cat: 'PERSONAL' },
+  { icon: 'sparkles-outline', label: 'Festival Pujas', cat: 'FESTIVAL' },
+  { icon: 'business-outline', label: 'Temple Pujas', cat: 'TEMPLE' },
+  { icon: 'people-outline', label: 'Ancestral Pujas', cat: 'ANCESTRAL' },
+];
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('');
@@ -36,27 +46,24 @@ export default function SearchScreen() {
     if (!query.trim()) return [];
     const q = query.toLowerCase();
     return ALL_PUJAS.filter(p =>
-      p.title.toLowerCase().includes(q) ||
-      p.venue.toLowerCase().includes(q) ||
-      p.category.toLowerCase().includes(q) ||
-      p.keywords.toLowerCase().includes(q)
+      p.title.toLowerCase().includes(q) || p.venue.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) || p.keywords.toLowerCase().includes(q)
     );
   }, [query]);
 
   const showResults = query.trim().length > 0;
 
   return (
-    <LinearGradient colors={[colors.background, colors.surface]} style={styles.container}>
-      {/* Search bar */}
+    <Screen>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backIcon}>←</Text>
+        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+          <Icon name="arrow-back" size={22} color={colors.textPrimary} />
         </Pressable>
         <View style={styles.inputWrapper}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Icon name="search-outline" size={18} color={colors.textMuted} />
           <TextInput
             style={styles.input}
-            placeholder="Search pujas, pujaris, samagri..."
+            placeholder="Search pujas, samagri..."
             placeholderTextColor={colors.textMuted}
             value={query}
             onChangeText={setQuery}
@@ -66,15 +73,14 @@ export default function SearchScreen() {
           />
           {query.length > 0 && (
             <Pressable onPress={() => setQuery('')} hitSlop={8}>
-              <Text style={styles.clearBtn}>✕</Text>
+              <Icon name="close-circle" size={18} color={colors.textMuted} />
             </Pressable>
           )}
         </View>
       </View>
 
       {!showResults ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Quick searches */}
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Text style={styles.sectionTitle}>Popular Searches</Text>
           <View style={styles.quickSearchRow}>
             {QUICK_SEARCHES.map(s => (
@@ -84,33 +90,21 @@ export default function SearchScreen() {
             ))}
           </View>
 
-          {/* Recent */}
           <Text style={styles.sectionTitle}>Recent</Text>
           {RECENT_SEARCHES.map(s => (
             <Pressable key={s} onPress={() => setQuery(s)} style={styles.recentRow}>
-              <Text style={styles.recentIcon}>🕐</Text>
+              <Icon name="time-outline" size={16} color={colors.textMuted} />
               <Text style={styles.recentText}>{s}</Text>
-              <Text style={styles.recentArrow}>→</Text>
+              <Icon name="arrow-forward" size={15} color={colors.textMuted} />
             </Pressable>
           ))}
 
-          {/* Browse categories */}
           <Text style={styles.sectionTitle}>Browse by Category</Text>
-          {[
-            { icon: '🏠', label: 'Home Pujas', cat: 'HOME' },
-            { icon: '🙏', label: 'Personal Pujas', cat: 'PERSONAL' },
-            { icon: '🎉', label: 'Festival Pujas', cat: 'FESTIVAL' },
-            { icon: '⛪', label: 'Temple Pujas', cat: 'TEMPLE' },
-            { icon: '👴', label: 'Ancestral Pujas', cat: 'ANCESTRAL' },
-          ].map(cat => (
-            <Pressable
-              key={cat.cat}
-              onPress={() => router.push({ pathname: '/puja/all', params: { category: cat.cat } })}
-              style={styles.categoryRow}
-            >
-              <Text style={styles.categoryIcon}>{cat.icon}</Text>
+          {CATEGORIES.map(cat => (
+            <Pressable key={cat.cat} onPress={() => router.push({ pathname: '/puja/all', params: { category: cat.cat } })} style={styles.categoryRow}>
+              <View style={styles.categoryIcon}><Icon name={cat.icon} size={18} color={colors.primary} /></View>
               <Text style={styles.categoryLabel}>{cat.label}</Text>
-              <Text style={styles.categoryArrow}>›</Text>
+              <Icon name="chevron-forward" size={18} color={colors.textMuted} />
             </Pressable>
           ))}
           <View style={{ height: 80 }} />
@@ -120,60 +114,44 @@ export default function SearchScreen() {
           data={results}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.resultsList}
-          ListHeaderComponent={
-            <Text style={styles.resultsCount}>
-              {results.length} result{results.length !== 1 ? 's' : ''} for "{query}"
-            </Text>
-          }
+          ListHeaderComponent={<Text style={styles.resultsCount}>{results.length} result{results.length !== 1 ? 's' : ''} for "{query}"</Text>}
           ListEmptyComponent={
             <View style={styles.noResults}>
-              <Text style={styles.noResultsEmoji}>🔍</Text>
+              <View style={styles.noResultsIcon}><Icon name="search-outline" size={40} color={colors.textMuted} /></View>
               <Text style={styles.noResultsTitle}>No results found</Text>
               <Text style={styles.noResultsSubtitle}>Try different keywords</Text>
             </View>
           }
           renderItem={({ item }) => (
-            <EventCard
-              event={item}
-              width={styles.resultCard.width}
-              compact
-              onPress={() => { Keyboard.dismiss(); router.push(`/puja/${item.id}`); }}
-            />
+            <EventCard event={item} width={RESULT_W} compact onPress={() => { Keyboard.dismiss(); router.push(`/puja/${item.id}`); }} />
           )}
           ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
       )}
-    </LinearGradient>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: spacing.xl + 24, paddingHorizontal: spacing.lg, paddingBottom: spacing.md },
-  backBtn: { marginRight: spacing.sm },
-  backIcon: { fontSize: 24, color: colors.textPrimary },
-  inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: colors.cardBg, borderRadius: borderRadius.xl, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: spacing.md, height: 48 },
-  searchIcon: { fontSize: 16, marginRight: spacing.sm },
+  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingBottom: spacing.md, paddingTop: spacing.sm },
+  backBtn: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  inputWrapper: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.primary, paddingHorizontal: spacing.md, height: 48 },
   input: { flex: 1, ...typography.bodyMedium, color: colors.textPrimary },
-  clearBtn: { color: colors.textMuted, fontSize: 16, padding: spacing.xs },
   sectionTitle: { ...typography.titleMedium, color: colors.textPrimary, paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
   quickSearchRow: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, gap: spacing.sm },
-  quickChip: { backgroundColor: colors.cardBg, borderWidth: 1, borderColor: colors.cardBorder, paddingHorizontal: spacing.md, paddingVertical: spacing.xs + 2, borderRadius: borderRadius.full },
-  quickChipText: { ...typography.labelMedium, color: colors.textSecondary },
-  recentRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
-  recentIcon: { fontSize: 16, marginRight: spacing.md, opacity: 0.7 },
+  quickChip: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.full },
+  quickChipText: { ...typography.labelMedium, color: colors.textSecondary, fontWeight: '600' },
+  recentRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
   recentText: { ...typography.bodyMedium, color: colors.textSecondary, flex: 1 },
-  recentArrow: { color: colors.textMuted, fontSize: 16 },
-  categoryRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
-  categoryIcon: { fontSize: 20, marginRight: spacing.md },
+  categoryRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
+  categoryIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(242,112,10,0.08)', alignItems: 'center', justifyContent: 'center' },
   categoryLabel: { ...typography.bodyMedium, color: colors.textPrimary, flex: 1 },
-  categoryArrow: { fontSize: 22, color: colors.textMuted },
-  resultsList: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  resultsList: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xxxl },
   resultsCount: { ...typography.bodySmall, color: colors.textMuted, marginBottom: spacing.md },
-  resultCard: { width: 'auto' as any },
   noResults: { alignItems: 'center', paddingVertical: spacing.massive },
-  noResultsEmoji: { fontSize: 48, marginBottom: spacing.md },
+  noResultsIcon: { width: 84, height: 84, borderRadius: 42, backgroundColor: colors.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   noResultsTitle: { ...typography.headlineSmall, color: colors.textPrimary, marginBottom: spacing.sm },
   noResultsSubtitle: { ...typography.bodyMedium, color: colors.textMuted },
 });
