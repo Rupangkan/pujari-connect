@@ -1,5 +1,5 @@
 /**
- * FOR YOU Tab — home feed: popular pujas + browse by tradition.
+ * FOR YOU Tab — home feed: popular pujas + browse by tradition (live data).
  */
 import React, { useRef, useState } from 'react';
 import {
@@ -16,19 +16,16 @@ import { EventCard } from '@/components/cards/EventCard';
 import { MoodCard } from '@/components/cards/MoodCard';
 import { SectionHeader } from '@/components/sections/SectionHeader';
 import { LocationHeader, SearchBar } from '@/components/layout/SearchBar';
+import { LoadingView, ErrorView } from '@/components/ui/AsyncBoundary';
+import { useApi } from '@/hooks/useApi';
+import { pujaService } from '@/services/puja.service';
+import { pujaToEvent } from '@/utils/mappers';
 import { config } from '@/constants/config';
+import { Puja } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.74;
 const CARD_MARGIN = 12;
-
-const FEATURED_EVENTS = [
-  { id: '1', title: 'Griha Pravesh Puja', dateTime: 'Available Daily', venue: 'At Your Home', price: '₹5,100', discountText: 'Free Consultation' },
-  { id: '2', title: 'Ganesh Puja', dateTime: '15 Feb 2026 • 6:00 AM', venue: 'Kamakhya Temple', price: '₹2,999', discountText: '20% OFF' },
-  { id: '3', title: 'Satyanarayan Puja', dateTime: 'Every Full Moon', venue: 'Online or Temple', price: '₹3,500', discountText: 'Group Booking' },
-  { id: '4', title: 'Lakshmi Puja', dateTime: 'Festival Season', venue: 'Haridwar Temple', price: '₹2,100', discountText: '15% OFF' },
-  { id: '5', title: 'Pitru Paksha Shanti', dateTime: '20 Sep - 5 Oct', venue: 'Gaya, Bihar', price: '₹5,693', discountText: 'Includes Tarpan' },
-];
 
 const ETHNICITY_MOODS = [
   { id: '1', title: 'Assamese', emoji: '🌺' },
@@ -43,6 +40,12 @@ export default function ForYouScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
+  const { data, loading, error, reload } = useApi<Puja[]>(
+    () => pujaService.getFeatured().then(r => (r.data as any).data as Puja[]),
+    []
+  );
+  const featured = data ?? [];
+
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / (CARD_WIDTH + CARD_MARGIN));
     setActiveIndex(index);
@@ -51,37 +54,40 @@ export default function ForYouScreen() {
   return (
     <Screen>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
-        <LocationHeader
-          location={config.DEFAULT_LOCATION_DETAIL}
-          onProfilePress={() => router.push('/profile')}
-        />
+        <LocationHeader location={config.DEFAULT_LOCATION_DETAIL} onProfilePress={() => router.push('/profile')} />
         <SearchBar onPress={() => router.push('/search')} />
 
-        {/* Popular carousel */}
         <SectionHeader title="Popular Pujas" onViewAll={() => router.push('/puja/all')} />
-        <FlatList
-          ref={flatListRef}
-          data={FEATURED_EVENTS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={CARD_WIDTH + CARD_MARGIN}
-          decelerationRate="fast"
-          contentContainerStyle={styles.carousel}
-          onScroll={handleScroll}
-          scrollEventThrottle={16}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <EventCard event={item} width={CARD_WIDTH} onPress={() => router.push(`/puja/${item.id}`)} />
-          )}
-          ItemSeparatorComponent={() => <View style={{ width: CARD_MARGIN }} />}
-        />
-        <View style={styles.dotsRow}>
-          {FEATURED_EVENTS.map((_, i) => (
-            <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
-          ))}
-        </View>
+        {loading ? (
+          <LoadingView style={{ minHeight: 220 }} />
+        ) : error ? (
+          <ErrorView message={error} onRetry={reload} style={{ minHeight: 220 }} />
+        ) : (
+          <>
+            <FlatList
+              ref={flatListRef}
+              data={featured}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={CARD_WIDTH + CARD_MARGIN}
+              decelerationRate="fast"
+              contentContainerStyle={styles.carousel}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              keyExtractor={item => item.id}
+              renderItem={({ item }) => (
+                <EventCard event={pujaToEvent(item)} width={CARD_WIDTH} onPress={() => router.push(`/puja/${item.id}`)} />
+              )}
+              ItemSeparatorComponent={() => <View style={{ width: CARD_MARGIN }} />}
+            />
+            <View style={styles.dotsRow}>
+              {featured.map((_, i) => (
+                <View key={i} style={[styles.dot, i === activeIndex && styles.dotActive]} />
+              ))}
+            </View>
+          </>
+        )}
 
-        {/* Browse by tradition */}
         <SectionHeader title="Browse by Tradition" onViewAll={() => router.push('/pujari/all')} />
         <FlatList
           data={ETHNICITY_MOODS}
@@ -98,17 +104,9 @@ export default function ForYouScreen() {
           )}
         />
 
-        {/* CTA banner */}
         <Pressable style={styles.bannerWrap} onPress={() => router.push('/puja/all')}>
-          <LinearGradient
-            colors={colors.gradientAarti}
-            style={styles.banner}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.bannerIcon}>
-              <Icon name="gift" size={24} color={colors.maroon} />
-            </View>
+          <LinearGradient colors={colors.gradientAarti} style={styles.banner} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+            <View style={styles.bannerIcon}><Icon name="gift" size={24} color={colors.maroon} /></View>
             <View style={styles.bannerContent}>
               <Text style={styles.bannerTitle}>First Booking Free!</Text>
               <Text style={styles.bannerSubtitle}>Free consultation with any pujari</Text>
@@ -128,21 +126,8 @@ const styles = StyleSheet.create({
   dotActive: { width: 18, backgroundColor: colors.primary },
   moodRow: { paddingHorizontal: spacing.lg, gap: spacing.lg, paddingBottom: spacing.sm },
   bannerWrap: { marginHorizontal: spacing.lg, marginTop: spacing.md },
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
-  },
-  bannerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderRadius: borderRadius.lg },
+  bannerIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.55)', alignItems: 'center', justifyContent: 'center' },
   bannerContent: { flex: 1 },
   bannerTitle: { ...typography.titleMedium, color: colors.maroon, fontWeight: '700' },
   bannerSubtitle: { ...typography.bodySmall, color: 'rgba(122,31,43,0.75)' },

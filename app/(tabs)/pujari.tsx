@@ -1,5 +1,5 @@
 /**
- * PUJARI Tab — browse and book pujaris.
+ * PUJARI Tab — browse and book pujaris (live data).
  */
 import React from 'react';
 import { View, ScrollView, StyleSheet, FlatList, Dimensions } from 'react-native';
@@ -11,30 +11,16 @@ import { EventCard } from '@/components/cards/EventCard';
 import { MoodCard } from '@/components/cards/MoodCard';
 import { SectionHeader } from '@/components/sections/SectionHeader';
 import { LocationHeader, SearchBar } from '@/components/layout/SearchBar';
+import { LoadingView, ErrorView } from '@/components/ui/AsyncBoundary';
+import { useApi } from '@/hooks/useApi';
+import { pujariService } from '@/services/pujari.service';
+import { pujaService } from '@/services/puja.service';
+import { pujaToEvent } from '@/utils/mappers';
 import { config } from '@/constants/config';
-import { Pujari } from '@/types';
+import { Pujari, Puja } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.78;
-
-const TOP_PUJARIS: Pujari[] = [
-  { id: '1', name: 'Pandit Rajesh Sharma', experience: 15, ethnicity: 'Hindi', specialization: 'Griha Pravesh, Wedding Ceremonies', phone: '+91-9876543210', email: 'rajesh@mypujari.com', location: 'Guwahati', rating: 4.8, totalBookings: 523, hourlyRate: 1500, bio: 'Expert in Vedic rituals with 15+ years of experience. Specialized in home pujas and wedding ceremonies.', languages: 'Hindi, English, Assamese', isVerified: true },
-  { id: '2', name: 'Swami Bishal Nayan Das', experience: 25, ethnicity: 'Bengali', specialization: 'Pitru Shanti, Satyanarayan Puja', phone: '+91-9876543211', email: 'bishal@mypujari.com', location: 'Guwahati', rating: 4.9, totalBookings: 1247, hourlyRate: 2000, bio: 'Renowned scholar of Vedic scriptures. Performs authentic traditional rituals.', languages: 'Bengali, Hindi, English', isVerified: true },
-  { id: '3', name: 'Pandit Suresh Joshi', experience: 10, ethnicity: 'Assamese', specialization: 'Festival Pujas, Lakshmi Puja', phone: '+91-9876543212', email: 'suresh@mypujari.com', location: 'Guwahati', rating: 4.6, totalBookings: 345, hourlyRate: 1200, bio: 'Young and energetic pandit bringing fresh approach to traditional rituals.', languages: 'Assamese, Hindi, English', isVerified: true },
-  { id: '4', name: 'Acharya Ramakrishna Iyer', experience: 30, ethnicity: 'Tamil', specialization: 'Temple Pujas, Homam', phone: '+91-9876543213', email: 'ramakrishna@mypujari.com', location: 'Guwahati', rating: 4.9, totalBookings: 2156, hourlyRate: 2500, bio: 'Senior priest with extensive knowledge of South Indian temple traditions.', languages: 'Tamil, Sanskrit, English', isVerified: true },
-];
-
-const HOME_PUJAS = [
-  { id: '1', title: 'Ganesh Chaturthi Puja', dateTime: '7 Sep 2026', venue: 'Your Home - Guwahati', price: '₹2,500', discountText: 'Includes Puja Kit' },
-  { id: '7', title: 'Navratri Complete Package', dateTime: '3-12 Oct 2026', venue: 'Your Home - 9 Days', price: '₹15,000', discountText: 'All Included' },
-  { id: '8', title: 'Vastu Shanti Puja', dateTime: 'Book Anytime', venue: 'Your Office/Home', price: '₹7,500', discountText: 'Free Consultation' },
-];
-
-const TEMPLE_PUJAS = [
-  { id: '9', title: 'Rudrabhishek', dateTime: 'Every Monday', venue: 'Kamakhya Temple', price: '₹1,100' },
-  { id: '10', title: 'Hanuman Chalisa Path', dateTime: 'Every Tuesday', venue: 'Hanuman Temple', price: '₹500' },
-  { id: '11', title: 'Saraswati Puja', dateTime: '14 Feb 2026', venue: 'Kamakhya Temple', price: '₹1,800', discountText: 'Student Special' },
-];
 
 const ETHNICITY_MOODS = [
   { id: '1', title: 'Assamese', emoji: '🌺' },
@@ -45,69 +31,94 @@ const ETHNICITY_MOODS = [
 ];
 
 export default function PujariScreen() {
+  const pujaris = useApi<Pujari[]>(() => pujariService.getAll().then(r => (r.data as any).data as Pujari[]), []);
+  const pujas = useApi<Puja[]>(() => pujaService.getAll().then(r => (r.data as any).data as Puja[]), []);
+
+  const loading = pujaris.loading || pujas.loading;
+  const error = pujaris.error || pujas.error;
+  const reload = () => { pujaris.reload(); pujas.reload(); };
+
+  const topPujaris = (pujaris.data ?? []).slice(0, 8);
+  const homePujas = (pujas.data ?? []).filter(p => p.category === 'HOME').slice(0, 6);
+  const templePujas = (pujas.data ?? []).filter(p => p.category === 'TEMPLE').slice(0, 6);
+
   return (
     <Screen>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
-        <LocationHeader location={config.DEFAULT_LOCATION_DETAIL} onProfilePress={() => router.push('/profile')} />
-        <SearchBar onPress={() => router.push('/search')} placeholder="Search for Pujari, Pandit..." />
+      <LocationHeader location={config.DEFAULT_LOCATION_DETAIL} onProfilePress={() => router.push('/profile')} />
+      <SearchBar onPress={() => router.push('/search')} placeholder="Search for Pujari, Pandit..." />
 
-        <SectionHeader title="Top Pujaris" onViewAll={() => router.push('/pujari/all')} />
-        <FlatList
-          data={TOP_PUJARIS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <PujariCard
-              pujari={item}
-              width={CARD_WIDTH}
-              onPress={() => router.push(`/pujari/${item.id}`)}
-              onBook={() => router.push(`/pujari/${item.id}`)}
-            />
-          )}
-          ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
-        />
+      {loading ? (
+        <LoadingView />
+      ) : error ? (
+        <ErrorView message={error} onRetry={reload} />
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
+          <SectionHeader title="Top Pujaris" onViewAll={() => router.push('/pujari/all')} />
+          <FlatList
+            data={topPujaris}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carousel}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <PujariCard
+                pujari={item}
+                width={CARD_WIDTH}
+                onPress={() => router.push(`/pujari/${item.id}`)}
+                onBook={() => router.push(`/pujari/${item.id}`)}
+              />
+            )}
+            ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+          />
 
-        <SectionHeader title="Book by Tradition" onViewAll={() => router.push('/pujari/all')} />
-        <FlatList
-          data={ETHNICITY_MOODS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.moodRow}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <MoodCard title={item.title} emoji={item.emoji}
-              onPress={() => router.push({ pathname: '/pujari/all', params: { ethnicity: item.title } })} />
-          )}
-        />
+          <SectionHeader title="Book by Tradition" onViewAll={() => router.push('/pujari/all')} />
+          <FlatList
+            data={ETHNICITY_MOODS}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.moodRow}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <MoodCard title={item.title} emoji={item.emoji}
+                onPress={() => router.push({ pathname: '/pujari/all', params: { ethnicity: item.title } })} />
+            )}
+          />
 
-        <SectionHeader title="Pujas at Home" onViewAll={() => router.push({ pathname: '/puja/all', params: { category: 'HOME' } })} />
-        <FlatList
-          data={HOME_PUJAS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <EventCard event={item} width={260} compact onPress={() => router.push(`/puja/${item.id}`)} />
+          {homePujas.length > 0 && (
+            <>
+              <SectionHeader title="Pujas at Home" onViewAll={() => router.push({ pathname: '/puja/all', params: { category: 'HOME' } })} />
+              <FlatList
+                data={homePujas}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.carousel}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <EventCard event={pujaToEvent(item)} width={260} compact onPress={() => router.push(`/puja/${item.id}`)} />
+                )}
+                ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              />
+            </>
           )}
-          ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
-        />
 
-        <SectionHeader title="Pujas at Temple" onViewAll={() => router.push({ pathname: '/puja/all', params: { category: 'TEMPLE' } })} />
-        <FlatList
-          data={TEMPLE_PUJAS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carousel}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <EventCard event={item} width={260} compact onPress={() => router.push(`/puja/${item.id}`)} />
+          {templePujas.length > 0 && (
+            <>
+              <SectionHeader title="Pujas at Temple" onViewAll={() => router.push({ pathname: '/puja/all', params: { category: 'TEMPLE' } })} />
+              <FlatList
+                data={templePujas}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.carousel}
+                keyExtractor={item => item.id}
+                renderItem={({ item }) => (
+                  <EventCard event={pujaToEvent(item)} width={260} compact onPress={() => router.push(`/puja/${item.id}`)} />
+                )}
+                ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              />
+            </>
           )}
-          ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
-        />
-      </ScrollView>
+        </ScrollView>
+      )}
     </Screen>
   );
 }

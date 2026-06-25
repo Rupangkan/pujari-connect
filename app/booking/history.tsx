@@ -1,5 +1,5 @@
 /**
- * Booking History Screen. Light Ivory & Gold theme.
+ * Booking History Screen (live data, auth-gated).
  */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, FlatList } from 'react-native';
@@ -9,12 +9,11 @@ import { typography, spacing, borderRadius } from '@/constants/typography';
 import { Screen } from '@/components/layout/Screen';
 import { Icon } from '@/components/ui/Icon';
 import { Chip } from '@/components/ui/Chip';
-
-const BOOKINGS = [
-  { id: 'BK-123456', status: 'CONFIRMED', pujaName: 'Griha Pravesh Puja', date: '15 Oct 2026', time: '08:00 AM', amount: 8500, pujariName: 'Pandit Rajesh Sharma' },
-  { id: 'BK-123457', status: 'COMPLETED', pujaName: 'Satyanarayan Puja', date: '10 Sep 2026', time: '10:00 AM', amount: 3500, pujariName: 'Swami Bishal Nayan Das' },
-  { id: 'BK-123458', status: 'CANCELLED', pujaName: 'Ganesh Puja', date: '5 Aug 2026', time: '09:00 AM', amount: 2500, pujariName: 'Pandit Suresh Joshi' },
-];
+import { LoadingView, ErrorView, EmptyView } from '@/components/ui/AsyncBoundary';
+import { useApi } from '@/hooks/useApi';
+import { bookingService } from '@/services/booking.service';
+import { formatINR } from '@/utils/mappers';
+import { useAuthStore } from '@/store/authStore';
 
 const FILTER_TABS = ['All', 'Upcoming', 'Completed', 'Cancelled'];
 
@@ -27,12 +26,36 @@ const statusColor = (status: string) => {
   }
 };
 
+interface BookingRow {
+  id: string; status: string; pujaName: string; date: string; time: string; amount: number; pujariName: string;
+}
+
+function toRow(b: any): BookingRow {
+  const d = b.bookingDate ? new Date(b.bookingDate) : null;
+  return {
+    id: b.id,
+    status: b.status,
+    pujaName: b.puja?.name ?? 'Puja',
+    date: d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+    time: d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+    amount: b.totalAmount ?? 0,
+    pujariName: b.pujari?.name ?? 'To be assigned',
+  };
+}
+
 export default function BookingHistoryScreen() {
+  const isAuth = useAuthStore(s => s.isAuthenticated);
   const [activeTab, setActiveTab] = useState('All');
 
-  const filteredBookings = BOOKINGS.filter(b => {
+  const { data, loading, error, reload } = useApi<BookingRow[]>(
+    () => isAuth ? bookingService.getAll().then(r => ((r.data as any).data as any[]).map(toRow)) : Promise.resolve([]),
+    [isAuth]
+  );
+  const bookings = data ?? [];
+
+  const filtered = bookings.filter(b => {
     if (activeTab === 'All') return true;
-    if (activeTab === 'Upcoming') return b.status === 'CONFIRMED' || b.status === 'PENDING';
+    if (activeTab === 'Upcoming') return b.status === 'CONFIRMED' || b.status === 'PENDING' || b.status === 'IN_PROGRESS';
     if (activeTab === 'Completed') return b.status === 'COMPLETED';
     if (activeTab === 'Cancelled') return b.status === 'CANCELLED';
     return false;
@@ -47,61 +70,66 @@ export default function BookingHistoryScreen() {
         <Text style={styles.title}>My Bookings</Text>
       </View>
 
-      <View style={styles.tabContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
-          {FILTER_TABS.map(tab => (
-            <Chip key={tab} label={tab} selected={activeTab === tab} onPress={() => setActiveTab(tab)} />
-          ))}
-        </ScrollView>
-      </View>
-
-      <FlatList
-        data={filteredBookings}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIcon}><Icon name="receipt-outline" size={44} color={colors.primary} /></View>
-            <Text style={styles.emptyTitle}>No bookings found</Text>
-            <Text style={styles.emptySubtitle}>You don't have any {activeTab.toLowerCase()} bookings yet.</Text>
-            <Pressable style={styles.exploreBtn} onPress={() => router.push('/puja/all')}>
-              <Text style={styles.exploreText}>Explore Pujas</Text>
-            </Pressable>
+      {!isAuth ? (
+        <EmptyView icon="receipt-outline" title="Sign in to see your bookings" subtitle="Your booking history appears here once you sign in." actionLabel="Sign In" onAction={() => router.replace('/(auth)/onboarding')} />
+      ) : (
+        <>
+          <View style={styles.tabContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabScroll}>
+              {FILTER_TABS.map(tab => (
+                <Chip key={tab} label={tab} selected={activeTab === tab} onPress={() => setActiveTab(tab)} />
+              ))}
+            </ScrollView>
           </View>
-        }
-        renderItem={({ item }) => {
-          const sc = statusColor(item.status);
-          return (
-            <Pressable style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.bookingId}>{item.id}</Text>
-                <View style={[styles.statusBadge, { borderColor: sc }]}>
-                  <View style={[styles.statusDot, { backgroundColor: sc }]} />
-                  <Text style={[styles.statusText, { color: sc }]}>{item.status}</Text>
-                </View>
-              </View>
-              <View style={styles.cardBody}>
-                <Text style={styles.pujaName}>{item.pujaName}</Text>
-                <View style={styles.metaRow}>
-                  <Icon name="calendar-outline" size={13} color={colors.textMuted} />
-                  <Text style={styles.metaText}>{item.date}</Text>
-                  <Icon name="time-outline" size={13} color={colors.textMuted} style={{ marginLeft: spacing.md }} />
-                  <Text style={styles.metaText}>{item.time}</Text>
-                </View>
-                <View style={styles.metaRow}>
-                  <Icon name="person-outline" size={13} color={colors.textMuted} />
-                  <Text style={styles.metaText}>{item.pujariName}</Text>
-                </View>
-              </View>
-              <View style={styles.cardFooter}>
-                <Text style={styles.amountLabel}>Total Amount</Text>
-                <Text style={styles.amountValue}>₹{item.amount.toLocaleString('en-IN')}</Text>
-              </View>
-            </Pressable>
-          );
-        }}
-      />
+
+          {loading ? (
+            <LoadingView />
+          ) : error ? (
+            <ErrorView message={error} onRetry={reload} />
+          ) : (
+            <FlatList
+              data={filtered}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <EmptyView icon="receipt-outline" title="No bookings found" subtitle={`You don't have any ${activeTab.toLowerCase()} bookings yet.`} actionLabel="Explore Pujas" onAction={() => router.push('/puja/all')} />
+              }
+              renderItem={({ item }) => {
+                const sc = statusColor(item.status);
+                return (
+                  <Pressable style={styles.card}>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.bookingId}>#{item.id.slice(-8).toUpperCase()}</Text>
+                      <View style={[styles.statusBadge, { borderColor: sc }]}>
+                        <View style={[styles.statusDot, { backgroundColor: sc }]} />
+                        <Text style={[styles.statusText, { color: sc }]}>{item.status}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.cardBody}>
+                      <Text style={styles.pujaName}>{item.pujaName}</Text>
+                      <View style={styles.metaRow}>
+                        <Icon name="calendar-outline" size={13} color={colors.textMuted} />
+                        <Text style={styles.metaText}>{item.date}</Text>
+                        {!!item.time && <Icon name="time-outline" size={13} color={colors.textMuted} style={{ marginLeft: spacing.md }} />}
+                        {!!item.time && <Text style={styles.metaText}>{item.time}</Text>}
+                      </View>
+                      <View style={styles.metaRow}>
+                        <Icon name="person-outline" size={13} color={colors.textMuted} />
+                        <Text style={styles.metaText}>{item.pujariName}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.cardFooter}>
+                      <Text style={styles.amountLabel}>Total Amount</Text>
+                      <Text style={styles.amountValue}>{formatINR(item.amount)}</Text>
+                    </View>
+                  </Pressable>
+                );
+              }}
+            />
+          )}
+        </>
+      )}
     </Screen>
   );
 }
@@ -112,13 +140,7 @@ const styles = StyleSheet.create({
   title: { ...typography.headlineMedium, color: colors.textPrimary },
   tabContainer: { paddingBottom: spacing.sm },
   tabScroll: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
-  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.massive },
-  emptyIcon: { width: 88, height: 88, borderRadius: 44, backgroundColor: 'rgba(242,112,10,0.08)', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.lg },
-  emptyTitle: { ...typography.headlineSmall, color: colors.textPrimary, marginBottom: spacing.sm },
-  emptySubtitle: { ...typography.bodyMedium, color: colors.textMuted, textAlign: 'center', marginBottom: spacing.xl },
-  exploreBtn: { backgroundColor: colors.primary, paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: borderRadius.full },
-  exploreText: { ...typography.button, color: colors.textOnPrimary },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl, flexGrow: 1 },
   card: { backgroundColor: colors.surface, borderRadius: borderRadius.lg, borderWidth: 1, borderColor: colors.cardBorder, marginBottom: spacing.md, overflow: 'hidden' },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.md, backgroundColor: colors.surfaceContainerLow, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
   bookingId: { ...typography.labelMedium, color: colors.textMuted },

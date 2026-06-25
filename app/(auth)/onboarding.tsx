@@ -16,16 +16,31 @@ import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
 import { Icon } from '@/components/ui/Icon';
 import { config } from '@/constants/config';
+import { useAuthStore } from '@/store/authStore';
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const login = useAuthStore((s) => s.login);
 
   const valid = phoneNumber.length === config.PHONE_LENGTH;
 
-  const handlePhoneLogin = () => {
-    if (!valid) return;
-    router.push({ pathname: '/(auth)/otp-verify', params: { phone: phoneNumber } });
+  const handlePhoneLogin = async () => {
+    if (!valid || sending) return;
+    setError('');
+    setSending(true);
+    try {
+      await login(phoneNumber); // sends OTP
+      router.push({ pathname: '/(auth)/otp-verify', params: { phone: phoneNumber } });
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message === 'Network Error'
+        ? 'Cannot reach the server. Is the backend running?'
+        : 'Could not send OTP. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -73,11 +88,14 @@ export default function OnboardingScreen() {
 
             <Pressable
               onPress={handlePhoneLogin}
-              disabled={!valid}
+              disabled={!valid || sending}
               style={({ pressed }) => [styles.loginButton, valid && styles.loginButtonActive, pressed && { opacity: 0.85 }]}
             >
-              <Text style={[styles.loginButtonText, valid && styles.loginButtonTextActive]}>Continue with Phone</Text>
+              <Text style={[styles.loginButtonText, valid && styles.loginButtonTextActive]}>
+                {sending ? 'Sending OTP...' : 'Continue with Phone'}
+              </Text>
             </Pressable>
+            {!!error && <Text style={styles.errorText}>{error}</Text>}
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
@@ -152,6 +170,7 @@ const styles = StyleSheet.create({
   loginButtonActive: { backgroundColor: colors.primary },
   loginButtonText: { ...typography.button, color: colors.textMuted },
   loginButtonTextActive: { color: colors.textOnPrimary },
+  errorText: { ...typography.bodySmall, color: colors.error, textAlign: 'center', marginTop: -spacing.sm, marginBottom: spacing.md },
 
   // Divider
   divider: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },

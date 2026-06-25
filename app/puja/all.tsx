@@ -1,5 +1,5 @@
 /**
- * All Pujas — full listing with category/type/sort filters.
+ * All Pujas — full listing with category/type/sort filters (live data).
  */
 import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, FlatList, Pressable, Dimensions } from 'react-native';
@@ -10,23 +10,14 @@ import { Screen } from '@/components/layout/Screen';
 import { Icon } from '@/components/ui/Icon';
 import { Chip } from '@/components/ui/Chip';
 import { EventCard } from '@/components/cards/EventCard';
+import { LoadingView, ErrorView, EmptyView } from '@/components/ui/AsyncBoundary';
+import { useApi } from '@/hooks/useApi';
+import { pujaService } from '@/services/puja.service';
+import { pujaToEvent } from '@/utils/mappers';
+import { Puja } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_W = (SCREEN_WIDTH - spacing.lg * 2 - 12) / 2;
-
-const ALL_PUJAS = [
-  { id: '1', title: 'Griha Pravesh Puja', dateTime: 'Book Anytime', venue: 'At Your Home', price: '₹5,100', category: 'HOME', type: 'OFFLINE', discountText: 'Most Popular' },
-  { id: '2', title: 'Satyanarayan Puja', dateTime: 'Daily', venue: 'Kashi / Online', price: '₹3,500', category: 'PERSONAL', type: 'BOTH' },
-  { id: '3', title: 'Lakshmi Puja', dateTime: '20 Sep - 5 Oct', venue: 'Haridwar', price: '₹2,100', category: 'FESTIVAL', type: 'ONLINE', discountText: '15% OFF Online' },
-  { id: '4', title: 'Ganesh Puja', dateTime: '1 Sep - 10 Oct', venue: 'Mumbai / Online', price: '₹2,500', category: 'PERSONAL', type: 'BOTH' },
-  { id: '5', title: 'Pitru Shanti Mahapuja', dateTime: '2 Oct - 1 Nov', venue: 'Gaya, Bihar', price: '₹5,693', category: 'ANCESTRAL', type: 'ONLINE', discountText: 'Includes Tarpan' },
-  { id: '6', title: 'Ganesh Chaturthi', dateTime: '7 Sep 2026', venue: 'Your Home', price: '₹2,500', category: 'HOME', type: 'OFFLINE' },
-  { id: '7', title: 'Navratri Complete', dateTime: '3-12 Oct 2026', venue: 'Your Home — 9 Days', price: '₹15,000', category: 'HOME', type: 'OFFLINE', discountText: 'All Included' },
-  { id: '8', title: 'Vastu Shanti Puja', dateTime: 'Anytime', venue: 'Your Location', price: '₹7,500', category: 'HOME', type: 'OFFLINE' },
-  { id: '9', title: 'Rudrabhishek', dateTime: 'Every Monday', venue: 'Somnath Temple', price: '₹1,100', category: 'TEMPLE', type: 'OFFLINE' },
-  { id: '10', title: 'Hanuman Chalisa Path', dateTime: 'Every Tuesday', venue: 'Hanuman Temple, Delhi', price: '₹500', category: 'TEMPLE', type: 'OFFLINE' },
-  { id: '11', title: 'Saraswati Puja', dateTime: '14 Feb 2026', venue: 'Kamakhya Temple', price: '₹1,800', category: 'TEMPLE', type: 'OFFLINE', discountText: 'Student Special' },
-];
 
 const CATEGORIES = ['All', 'HOME', 'PERSONAL', 'FESTIVAL', 'TEMPLE', 'ANCESTRAL'];
 const TYPES = ['All', 'ONLINE', 'OFFLINE', 'BOTH'];
@@ -41,17 +32,19 @@ export default function AllPujasScreen() {
   const [selectedSort, setSelectedSort] = useState('Featured');
   const [showSortMenu, setShowSortMenu] = useState(false);
 
+  const { data, loading, error, reload } = useApi<Puja[]>(
+    () => pujaService.getAll().then(r => (r.data as any).data as Puja[]),
+    []
+  );
+
   const filtered = useMemo(() => {
-    let list = ALL_PUJAS
+    let list = (data ?? [])
       .filter(p => selectedCategory === 'All' || p.category === selectedCategory)
       .filter(p => selectedType === 'All' || p.type === selectedType);
-    if (selectedSort === 'Price: Low to High') {
-      list = [...list].sort((a, b) => parseInt(a.price.replace(/[₹,]/g, '')) - parseInt(b.price.replace(/[₹,]/g, '')));
-    } else if (selectedSort === 'Price: High to Low') {
-      list = [...list].sort((a, b) => parseInt(b.price.replace(/[₹,]/g, '')) - parseInt(a.price.replace(/[₹,]/g, '')));
-    }
+    if (selectedSort === 'Price: Low to High') list = [...list].sort((a, b) => a.basePrice - b.basePrice);
+    else if (selectedSort === 'Price: High to Low') list = [...list].sort((a, b) => b.basePrice - a.basePrice);
     return list;
-  }, [selectedCategory, selectedType, selectedSort]);
+  }, [data, selectedCategory, selectedType, selectedSort]);
 
   return (
     <Screen>
@@ -104,22 +97,24 @@ export default function AllPujasScreen() {
         )}
       />
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {filtered.length === 0 ? (
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🪔</Text>
-            <Text style={styles.emptyTitle}>No pujas found</Text>
-            <Text style={styles.emptySubtitle}>Try different filters</Text>
-          </View>
-        ) : (
-          <View style={styles.grid}>
-            {filtered.map(item => (
-              <EventCard key={item.id} event={item} width={CARD_W} compact onPress={() => router.push(`/puja/${item.id}`)} />
-            ))}
-          </View>
-        )}
-        <View style={{ height: spacing.xxxl }} />
-      </ScrollView>
+      {loading ? (
+        <LoadingView />
+      ) : error ? (
+        <ErrorView message={error} onRetry={reload} />
+      ) : (
+        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          {filtered.length === 0 ? (
+            <EmptyView icon="flame-outline" title="No pujas found" subtitle="Try different filters." />
+          ) : (
+            <View style={styles.grid}>
+              {filtered.map(puja => (
+                <EventCard key={puja.id} event={pujaToEvent(puja)} width={CARD_W} compact onPress={() => router.push(`/puja/${puja.id}`)} />
+              ))}
+            </View>
+          )}
+          <View style={{ height: spacing.xxxl }} />
+        </ScrollView>
+      )}
     </Screen>
   );
 }
@@ -143,8 +138,4 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingTop: spacing.sm },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.lg, gap: 12 },
-  empty: { alignItems: 'center', paddingVertical: spacing.massive },
-  emptyEmoji: { fontSize: 48, marginBottom: spacing.md },
-  emptyTitle: { ...typography.headlineSmall, color: colors.textPrimary, marginBottom: spacing.sm },
-  emptySubtitle: { ...typography.bodyMedium, color: colors.textMuted },
 });

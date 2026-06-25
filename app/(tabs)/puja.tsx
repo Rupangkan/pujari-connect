@@ -1,5 +1,5 @@
 /**
- * PUJA Tab — browse all pujas with category filter (2-column grid).
+ * PUJA Tab — browse all pujas with category filter (live data).
  */
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, FlatList, Dimensions } from 'react-native';
@@ -11,6 +11,11 @@ import { EventCard } from '@/components/cards/EventCard';
 import { Chip } from '@/components/ui/Chip';
 import { SectionHeader } from '@/components/sections/SectionHeader';
 import { SearchBar } from '@/components/layout/SearchBar';
+import { LoadingView, ErrorView, EmptyView } from '@/components/ui/AsyncBoundary';
+import { useApi } from '@/hooks/useApi';
+import { pujaService } from '@/services/puja.service';
+import { pujaToEvent } from '@/utils/mappers';
+import { Puja } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const GRID_GAP = 12;
@@ -18,26 +23,17 @@ const COLUMN_WIDTH = (SCREEN_WIDTH - spacing.lg * 2 - GRID_GAP) / 2;
 
 const CATEGORIES = ['All', 'Home', 'Personal', 'Festival', 'Temple', 'Ancestral'];
 
-const ALL_PUJAS = [
-  { id: '1', title: 'Griha Pravesh Puja', dateTime: 'Book Anytime', venue: 'At Your Home', price: '₹5,100', category: 'Home', discountText: 'Popular' },
-  { id: '2', title: 'Satyanarayan Puja', dateTime: 'Daily', venue: 'Kashi / Online', price: '₹3,500', category: 'Personal' },
-  { id: '3', title: 'Lakshmi Puja', dateTime: '20 Sep - 5 Oct', venue: 'Haridwar', price: '₹2,100', category: 'Festival', discountText: '15% OFF' },
-  { id: '4', title: 'Ganesh Puja', dateTime: '1 Sep - 10 Oct', venue: 'Mumbai / Online', price: '₹2,500', category: 'Personal' },
-  { id: '5', title: 'Pitru Shanti Mahapuja', dateTime: '2 Oct - 1 Nov', venue: 'Gaya, Bihar', price: '₹5,693', category: 'Ancestral', discountText: 'Includes Tarpan' },
-  { id: '6', title: 'Ganesh Chaturthi Puja', dateTime: '7 Sep 2026', venue: 'Your Home', price: '₹2,500', category: 'Home' },
-  { id: '7', title: 'Navratri Complete Package', dateTime: '3-12 Oct 2026', venue: 'Your Home — 9 Days', price: '₹15,000', category: 'Home', discountText: 'All Included' },
-  { id: '8', title: 'Vastu Shanti Puja', dateTime: 'Anytime', venue: 'Your Location', price: '₹7,500', category: 'Home' },
-  { id: '9', title: 'Rudrabhishek', dateTime: 'Every Monday', venue: 'Somnath Temple', price: '₹1,100', category: 'Temple' },
-  { id: '10', title: 'Hanuman Chalisa Path', dateTime: 'Every Tuesday', venue: 'Hanuman Temple, Delhi', price: '₹500', category: 'Temple' },
-  { id: '11', title: 'Saraswati Puja', dateTime: '14 Feb 2026', venue: 'Kamakhya Temple', price: '₹1,800', category: 'Temple', discountText: 'Student Special' },
-];
-
 export default function PujaScreen() {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const { data, loading, error, reload } = useApi<Puja[]>(
+    () => pujaService.getAll().then(r => (r.data as any).data as Puja[]),
+    []
+  );
 
+  const all = data ?? [];
   const filtered = selectedCategory === 'All'
-    ? ALL_PUJAS
-    : ALL_PUJAS.filter(p => p.category === selectedCategory);
+    ? all
+    : all.filter(p => p.category === selectedCategory.toUpperCase());
 
   return (
     <Screen>
@@ -59,20 +55,30 @@ export default function PujaScreen() {
         )}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
-        <SectionHeader title={`${filtered.length} ${selectedCategory !== 'All' ? selectedCategory : 'Pujas'} Available`} />
-        <View style={styles.grid}>
-          {filtered.map((item) => (
-            <EventCard
-              key={item.id}
-              event={item}
-              width={COLUMN_WIDTH}
-              compact
-              onPress={() => router.push(`/puja/${item.id}`)}
-            />
-          ))}
-        </View>
-      </ScrollView>
+      {loading ? (
+        <LoadingView />
+      ) : error ? (
+        <ErrorView message={error} onRetry={reload} />
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
+          <SectionHeader title={`${filtered.length} ${selectedCategory !== 'All' ? selectedCategory : 'Pujas'} Available`} />
+          {filtered.length === 0 ? (
+            <EmptyView icon="flame-outline" title="No pujas found" subtitle="Try a different category." />
+          ) : (
+            <View style={styles.grid}>
+              {filtered.map((puja) => (
+                <EventCard
+                  key={puja.id}
+                  event={pujaToEvent(puja)}
+                  width={COLUMN_WIDTH}
+                  compact
+                  onPress={() => router.push(`/puja/${puja.id}`)}
+                />
+              ))}
+            </View>
+          )}
+        </ScrollView>
+      )}
     </Screen>
   );
 }

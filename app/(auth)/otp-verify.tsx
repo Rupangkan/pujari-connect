@@ -11,6 +11,7 @@ import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
 import { Icon } from '@/components/ui/Icon';
 import { config } from '@/constants/config';
+import { useAuthStore } from '@/store/authStore';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -20,7 +21,11 @@ export default function OtpVerifyScreen() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [countdown, setCountdown] = useState(config.OTP_RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState('');
   const inputs = useRef<(TextInput | null)[]>([]);
+  const verifyOtp = useAuthStore((s) => s.verifyOtp);
+  const login = useAuthStore((s) => s.login);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -41,15 +46,28 @@ export default function OtpVerifyScreen() {
     if (key === 'Backspace' && !otp[idx] && idx > 0) inputs.current[idx - 1]?.focus();
   };
 
-  const handleVerify = () => {
-    if (otp.join('').length === 6) router.replace('/(tabs)');
+  const handleVerify = async () => {
+    const code = otp.join('');
+    if (code.length !== 6 || verifying) return;
+    setError('');
+    setVerifying(true);
+    try {
+      await verifyOtp(String(phone), code);
+      router.replace('/(tabs)');
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Invalid or expired OTP. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
   };
 
-  const handleResend = () => {
+  const handleResend = async () => {
     setCountdown(config.OTP_RESEND_SECONDS);
     setCanResend(false);
     setOtp(['', '', '', '', '', '']);
+    setError('');
     inputs.current[0]?.focus();
+    try { await login(String(phone)); } catch { /* ignore */ }
   };
 
   const isComplete = otp.every(d => d !== '');
@@ -90,11 +108,14 @@ export default function OtpVerifyScreen() {
 
         <Pressable
           onPress={handleVerify}
-          disabled={!isComplete}
+          disabled={!isComplete || verifying}
           style={({ pressed }) => [styles.verifyBtn, isComplete && styles.verifyBtnActive, pressed && { opacity: 0.85 }]}
         >
-          <Text style={[styles.verifyText, isComplete && styles.verifyTextActive]}>Verify & Continue</Text>
+          <Text style={[styles.verifyText, isComplete && styles.verifyTextActive]}>
+            {verifying ? 'Verifying...' : 'Verify & Continue'}
+          </Text>
         </Pressable>
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         <View style={styles.resendRow}>
           <Text style={styles.resendLabel}>Didn't receive the OTP? </Text>
@@ -130,6 +151,7 @@ const styles = StyleSheet.create({
   verifyBtnActive: { backgroundColor: colors.primary },
   verifyText: { ...typography.button, color: colors.textMuted },
   verifyTextActive: { color: colors.textOnPrimary },
+  errorText: { ...typography.bodySmall, color: colors.error, textAlign: 'center', marginTop: -spacing.sm, marginBottom: spacing.md },
   resendRow: { flexDirection: 'row', alignItems: 'center' },
   resendLabel: { ...typography.bodySmall, color: colors.textMuted },
   resendBtn: { ...typography.labelMedium, color: colors.primary },
