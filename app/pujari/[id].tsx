@@ -15,6 +15,8 @@ import { LoadingView, ErrorView } from '@/components/ui/AsyncBoundary';
 import { useApi } from '@/hooks/useApi';
 import { pujariService } from '@/services/pujari.service';
 import { formatINR } from '@/utils/mappers';
+import { useBookingDraft } from '@/store/bookingDraft';
+import { useAuthStore } from '@/store/authStore';
 import { Pujari } from '@/types';
 
 const PACKAGES = [
@@ -52,6 +54,24 @@ export default function PujariDetailScreen() {
     [id]
   );
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
+  const setDraft = useBookingDraft(s => s.setDraft);
+  const isAuth = useAuthStore(s => s.isAuthenticated);
+
+  const handleBook = () => {
+    if (!pujari) return;
+    if (!isAuth) { router.push('/(auth)/onboarding'); return; }
+    const chosen = PACKAGES.find(p => p.id === selectedPkg);
+    setDraft({
+      kind: 'pujari',
+      pujariId: pujari.id,
+      title: pujari.name,
+      subtitle: chosen ? chosen.name : 'Hourly Consultation',
+      notes: chosen ? `${chosen.name} (${chosen.duration})` : 'Hourly booking',
+      offeringIds: [],
+      total: chosen ? chosen.price : pujari.hourlyRate,
+    });
+    router.push('/booking/address');
+  };
 
   if (loading) return <View style={styles.container}><LoadingView /></View>;
   if (error || !pujari) {
@@ -180,7 +200,7 @@ export default function PujariDetailScreen() {
           </Text>
           <Text style={styles.ctaSublabel}>{selectedPkg ? 'Package selected' : 'Select a package above'}</Text>
         </View>
-        <Pressable style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]} onPress={() => router.push('/booking/cart')}>
+        <Pressable style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.85 }]} onPress={handleBook}>
           <Text style={styles.bookBtnText}>Book Now</Text>
         </Pressable>
       </View>

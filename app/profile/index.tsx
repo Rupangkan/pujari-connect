@@ -10,6 +10,8 @@ import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { useProfileStore } from '@/store/profileStore';
+import { useAuthStore } from '@/store/authStore';
+import { formatPhone } from '@/utils/mappers';
 
 interface QuickAction { label: string; icon: IconName; href: Href; }
 const QUICK_ACTIONS: QuickAction[] = [
@@ -31,8 +33,19 @@ const MENU_ITEMS: MenuItem[] = [
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { name, phone, email } = useProfileStore();
+  const authUser = useAuthStore(s => s.user);
+  const logout = useAuthStore(s => s.logout);
+  const local = useProfileStore();
+
+  const name = authUser?.name || local.name;
+  const phone = authUser?.phoneNumber ? formatPhone(authUser.phoneNumber) : local.phone;
+  const email = authUser?.email || local.email;
   const initial = name.trim().charAt(0).toUpperCase() || 'U';
+
+  const handleLogout = () => {
+    logout();
+    router.replace('/(auth)/onboarding');
+  };
 
   return (
     <LinearGradient colors={colors.gradientScreen} style={styles.container}>
@@ -106,7 +119,7 @@ export default function ProfileScreen() {
 
         {/* Log out */}
         <Pressable
-          onPress={() => router.replace('/(auth)/onboarding')}
+          onPress={handleLogout}
           style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.85 }]}
         >
           <Icon name="log-out-outline" size={18} color={colors.error} />

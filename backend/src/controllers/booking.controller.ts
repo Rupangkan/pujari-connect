@@ -7,11 +7,17 @@ const prisma = new PrismaClient();
 export const createBooking = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const { pujaId, pujariId, packageId, bookingDate, totalAmount, addressId, offeringIds, kitItems, couponCode, discount, notes } = req.body;
+    if (!pujaId && !pujariId) {
+      return res.status(400).json({ success: false, message: 'A puja or pujari is required to create a booking.' });
+    }
+    if (!bookingDate || totalAmount == null) {
+      return res.status(400).json({ success: false, message: 'bookingDate and totalAmount are required.' });
+    }
     const booking = await prisma.booking.create({
       data: {
         userId: req.user!.userId,
-        pujaId,
-        pujariId,
+        pujaId: pujaId ?? null,
+        pujariId: pujariId ?? null,
         packageId,
         bookingDate: new Date(bookingDate),
         totalAmount,

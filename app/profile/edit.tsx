@@ -13,23 +13,46 @@ import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
 import { Icon } from '@/components/ui/Icon';
 import { useProfileStore } from '@/store/profileStore';
+import { useAuthStore } from '@/store/authStore';
+import { userService } from '@/services/user.service';
+import { formatPhone } from '@/utils/mappers';
 
 const GENDERS = ['Male', 'Female', 'Other'];
 
 export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const profile = useProfileStore();
-  const [name, setName] = useState(profile.name);
-  const [email, setEmail] = useState(profile.email);
-  const [dateOfBirth, setDateOfBirth] = useState(profile.dateOfBirth);
-  const [gender, setGender] = useState(profile.gender);
+  const authUser = useAuthStore(s => s.user);
+  const isAuth = useAuthStore(s => s.isAuthenticated);
+  const loadUser = useAuthStore(s => s.loadUser);
 
+  const [name, setName] = useState(authUser?.name ?? profile.name);
+  const [email, setEmail] = useState(authUser?.email ?? profile.email);
+  const [dateOfBirth, setDateOfBirth] = useState(authUser?.dateOfBirth ?? profile.dateOfBirth);
+  const [gender, setGender] = useState(authUser?.gender ?? profile.gender);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const phoneDisplay = authUser?.phoneNumber ? formatPhone(authUser.phoneNumber) : profile.phone;
   const nameValid = name.trim().length >= 2;
 
-  const handleSave = () => {
-    if (!nameValid) return;
-    profile.updateProfile({ name: name.trim(), email: email.trim(), dateOfBirth: dateOfBirth.trim(), gender });
-    router.back();
+  const handleSave = async () => {
+    if (!nameValid || saving) return;
+    setError('');
+    setSaving(true);
+    try {
+      if (isAuth) {
+        await userService.updateProfile({ name: name.trim(), email: email.trim(), dateOfBirth: dateOfBirth.trim(), gender });
+        await loadUser();
+      } else {
+        profile.updateProfile({ name: name.trim(), email: email.trim(), dateOfBirth: dateOfBirth.trim(), gender });
+      }
+      router.back();
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Could not save changes.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const initial = name.trim().charAt(0).toUpperCase() || 'U';
@@ -86,7 +109,7 @@ export default function EditProfileScreen() {
           {/* Phone (read-only) */}
           <Text style={styles.label}>Phone Number</Text>
           <View style={[styles.input, styles.inputDisabled]}>
-            <Text style={styles.disabledText}>{profile.phone}</Text>
+            <Text style={styles.disabledText}>{phoneDisplay}</Text>
             <Icon name="lock-closed" size={14} color={colors.textMuted} />
           </View>
           <Text style={styles.helper}>Phone is linked to your account and can't be changed here.</Text>
@@ -122,16 +145,19 @@ export default function EditProfileScreen() {
 
         {/* Save bar */}
         <View style={[styles.bottomBar, { paddingBottom: insets.bottom + spacing.sm }]}>
-          <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.85 }]}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
-          <Pressable
-            onPress={handleSave}
-            disabled={!nameValid}
-            style={({ pressed }) => [styles.saveBtn, !nameValid && styles.saveBtnDisabled, pressed && { opacity: 0.85 }]}
-          >
-            <Text style={styles.saveText}>Save Changes</Text>
-          </Pressable>
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+          <View style={styles.bottomRow}>
+            <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.85 }]}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSave}
+              disabled={!nameValid || saving}
+              style={({ pressed }) => [styles.saveBtn, (!nameValid || saving) && styles.saveBtnDisabled, pressed && { opacity: 0.85 }]}
+            >
+              <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+            </Pressable>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </LinearGradient>
@@ -169,10 +195,12 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: colors.textOnPrimary },
 
   bottomBar: {
-    flexDirection: 'row', gap: spacing.md, paddingTop: spacing.md, paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md, paddingHorizontal: spacing.lg,
     backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.cardBorderLight,
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 12,
   },
+  bottomRow: { flexDirection: 'row', gap: spacing.md },
+  errorText: { ...typography.bodySmall, color: colors.error, textAlign: 'center', marginBottom: spacing.sm },
   cancelBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, borderRadius: borderRadius.full, borderWidth: 1.5, borderColor: colors.cardBorderLight },
   cancelText: { ...typography.button, color: colors.textSecondary },
   saveBtn: { flex: 2, alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, borderRadius: borderRadius.full, backgroundColor: colors.primary },

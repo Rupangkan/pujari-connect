@@ -1,5 +1,10 @@
 /**
  * Samagri Cart / Checkout Screen. Light Ivory & Gold theme.
+ *
+ * NOTE: Part of the samagri flow, which is temporarily hidden from the app.
+ * Kept intact (not deleted) for when samagri is re-enabled. Puja/pujari
+ * bookings do NOT use this cart — they go through the booking draft flow
+ * (booking/address -> booking/payment).
  */
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';

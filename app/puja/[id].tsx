@@ -13,6 +13,8 @@ import { LoadingView, ErrorView } from '@/components/ui/AsyncBoundary';
 import { useApi } from '@/hooks/useApi';
 import { pujaService } from '@/services/puja.service';
 import { formatINR } from '@/utils/mappers';
+import { useBookingDraft } from '@/store/bookingDraft';
+import { useAuthStore } from '@/store/authStore';
 import { Puja } from '@/types';
 
 /** PackageDetail.items is stored as a JSON string in the DB. */
@@ -36,9 +38,26 @@ export default function PujaDetailScreen() {
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [selectedOfferings, setSelectedOfferings] = useState<string[]>([]);
+  const setDraft = useBookingDraft(s => s.setDraft);
+  const isAuth = useAuthStore(s => s.isAuthenticated);
 
   const toggleOffering = (oid: string) =>
     setSelectedOfferings(prev => prev.includes(oid) ? prev.filter(i => i !== oid) : [...prev, oid]);
+
+  const handleBook = () => {
+    if (!puja) return;
+    if (!isAuth) { router.push('/(auth)/onboarding'); return; }
+    setDraft({
+      kind: 'puja',
+      pujaId: puja.id,
+      packageId: pkg?.id,
+      title: puja.name,
+      subtitle: pkg?.title,
+      offeringIds: selectedOfferings,
+      total,
+    });
+    router.push('/booking/address');
+  };
 
   if (loading) return <View style={styles.container}><LoadingView /></View>;
   if (error || !puja) {
@@ -167,7 +186,7 @@ export default function PujaDetailScreen() {
           <Text style={styles.startingFrom}>Total Amount</Text>
           <Text style={styles.totalPrice}>{formatINR(total)}</Text>
         </View>
-        <Pressable style={({ pressed }) => [styles.bookNowBtn, pressed && { opacity: 0.85 }]} onPress={() => router.push('/booking/cart')}>
+        <Pressable style={({ pressed }) => [styles.bookNowBtn, pressed && { opacity: 0.85 }]} onPress={handleBook}>
           <Text style={styles.bookNowText}>Book Now</Text>
         </Pressable>
       </View>

@@ -1,5 +1,9 @@
 /**
  * SAMAGRI Tab — browse and shop puja samagri items (live data).
+ *
+ * NOTE: The samagri flow is temporarily hidden from the app (see the tab
+ * layout, which sets `href: null`). This screen and the cart are kept intact
+ * so the feature can be re-enabled later without rebuilding it.
  */
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, FlatList, Pressable } from 'react-native';

@@ -1,5 +1,5 @@
 /**
- * Payment Screen — booking confirmation & mock payment. Light theme.
+ * Payment Screen — booking confirmation; creates a real booking. Light theme.
  */
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
@@ -10,6 +10,10 @@ import { colors } from '@/constants/colors';
 import { typography, spacing, borderRadius } from '@/constants/typography';
 import { Screen } from '@/components/layout/Screen';
 import { Icon, type IconName } from '@/components/ui/Icon';
+import { EmptyView } from '@/components/ui/AsyncBoundary';
+import { bookingService } from '@/services/booking.service';
+import { formatINR } from '@/utils/mappers';
+import { useBookingDraft } from '@/store/bookingDraft';
 
 type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'cod';
 
@@ -22,51 +26,56 @@ const PAYMENT_METHODS: { id: PaymentMethod; icon: IconName; label: string; subla
 
 export default function PaymentScreen() {
   const insets = useSafeAreaInsets();
+  const draft = useBookingDraft(s => s.draft);
+  const clearDraft = useBookingDraft(s => s.clear);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('upi');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [error, setError] = useState('');
 
-  const orderSummary = {
-    pujaName: 'Griha Pravesh Puja',
-    package: 'Premium Package',
-    total: 8500,
-    address: '42, Divine Residency, Koramangala, Bangalore - 560001',
-    date: 'Today + 2 days',
-  };
+  if (!draft && !isSuccess) {
+    return (
+      <Screen>
+        <EmptyView icon="cart-outline" title="No booking in progress" subtitle="Pick a puja or pujari to book." actionLabel="Browse Pujas" onAction={() => router.replace('/(tabs)')} />
+      </Screen>
+    );
+  }
 
   const handlePayment = async () => {
+    if (!draft || isProcessing) return;
+    setError('');
     setIsProcessing(true);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsProcessing(false);
-    setIsSuccess(true);
+    try {
+      const payload = {
+        pujaId: draft.pujaId,
+        pujariId: draft.pujariId,
+        packageId: draft.packageId,
+        addressId: draft.addressId,
+        bookingDate: new Date().toISOString(),
+        totalAmount: draft.total,
+        offeringIds: draft.offeringIds,
+        notes: draft.notes,
+      };
+      const res = await bookingService.create(payload as any);
+      setBookingId((res.data as any).data?.id ?? null);
+      setIsSuccess(true);
+      clearDraft();
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Payment failed. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (isSuccess) {
     return (
       <Screen>
         <Animated.View entering={FadeInUp.duration(600)} style={styles.successContainer}>
-          <View style={styles.successIcon}>
-            <Icon name="checkmark-circle" size={64} color={colors.success} />
-          </View>
+          <View style={styles.successIcon}><Icon name="checkmark-circle" size={64} color={colors.success} /></View>
           <Text style={styles.successTitle}>Booking Confirmed!</Text>
-          <Text style={styles.successSubtitle}>
-            Your {orderSummary.pujaName} has been successfully booked. Our pandit will contact you shortly.
-          </Text>
-          <View style={styles.successCard}>
-            <Text style={styles.successCardTitle}>Booking Details</Text>
-            {[
-              { label: 'Puja', value: orderSummary.pujaName },
-              { label: 'Package', value: orderSummary.package },
-              { label: 'Date', value: orderSummary.date },
-              { label: 'Amount Paid', value: `₹${orderSummary.total.toLocaleString('en-IN')}` },
-              { label: 'Payment', value: PAYMENT_METHODS.find(m => m.id === selectedMethod)?.label || '' },
-            ].map((row, i) => (
-              <View key={i} style={styles.successRow}>
-                <Text style={styles.successLabel}>{row.label}</Text>
-                <Text style={styles.successValue}>{row.value}</Text>
-              </View>
-            ))}
-          </View>
+          <Text style={styles.successSubtitle}>Your booking has been placed. Our team will contact you shortly.</Text>
+          {!!bookingId && <Text style={styles.bookingRef}>Ref #{bookingId.slice(-8).toUpperCase()}</Text>}
           <View style={styles.successBtns}>
             <Pressable onPress={() => router.replace('/(tabs)')} style={styles.homeBtn}>
               <Text style={styles.homeBtnText}>Go to Home</Text>
@@ -93,20 +102,24 @@ export default function PaymentScreen() {
         <Animated.View entering={FadeInDown.delay(100)} style={styles.summaryCard}>
           <Text style={styles.summaryTitle}>Order Summary</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Puja</Text>
-            <Text style={styles.summaryValue}>{orderSummary.pujaName}</Text>
+            <Text style={styles.summaryLabel}>{draft!.kind === 'puja' ? 'Puja' : 'Pujari'}</Text>
+            <Text style={styles.summaryValue}>{draft!.title}</Text>
           </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Package</Text>
-            <Text style={styles.summaryValue}>{orderSummary.package}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Address</Text>
-            <Text style={[styles.summaryValue, styles.addressValue]} numberOfLines={2}>{orderSummary.address}</Text>
-          </View>
+          {!!draft!.subtitle && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Package</Text>
+              <Text style={styles.summaryValue}>{draft!.subtitle}</Text>
+            </View>
+          )}
+          {!!draft!.addressText && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Address</Text>
+              <Text style={[styles.summaryValue, styles.addressValue]} numberOfLines={2}>{draft!.addressText}</Text>
+            </View>
+          )}
           <View style={[styles.summaryRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>₹{orderSummary.total.toLocaleString('en-IN')}</Text>
+            <Text style={styles.totalValue}>{formatINR(draft!.total)}</Text>
           </View>
         </Animated.View>
 
@@ -121,9 +134,7 @@ export default function PaymentScreen() {
                   <Text style={styles.paymentName}>{method.label}</Text>
                   <Text style={styles.paymentSublabel}>{method.sublabel}</Text>
                 </View>
-                <View style={[styles.radio, active && styles.radioSelected]}>
-                  {active && <View style={styles.radioInner} />}
-                </View>
+                <View style={[styles.radio, active && styles.radioSelected]}>{active && <View style={styles.radioInner} />}</View>
               </Pressable>
             );
           })}
@@ -138,6 +149,7 @@ export default function PaymentScreen() {
           ))}
         </View>
 
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
         <View style={{ height: 150 }} />
       </ScrollView>
 
@@ -149,7 +161,7 @@ export default function PaymentScreen() {
               <Text style={[styles.payBtnText, { marginLeft: spacing.sm }]}>Processing...</Text>
             </View>
           ) : (
-            <Text style={styles.payBtnText}>Pay ₹{orderSummary.total.toLocaleString('en-IN')}</Text>
+            <Text style={styles.payBtnText}>Pay {formatINR(draft!.total)}</Text>
           )}
         </Pressable>
         <Text style={styles.termsNote}>By paying, you agree to our Terms & Refund Policy</Text>
@@ -165,7 +177,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.lg },
   summaryCard: { backgroundColor: colors.surface, borderRadius: borderRadius.xl, padding: spacing.lg, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.cardBorder },
   summaryTitle: { ...typography.titleLarge, color: colors.textPrimary, marginBottom: spacing.md },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm, alignItems: 'flex-start' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm, alignItems: 'flex-start', gap: spacing.lg },
   summaryLabel: { ...typography.bodySmall, color: colors.textMuted, flex: 1 },
   summaryValue: { ...typography.bodyMedium, color: colors.textPrimary, flex: 1.5, textAlign: 'right', fontWeight: '600' },
   addressValue: { fontSize: 12, fontWeight: '400' },
@@ -185,21 +197,17 @@ const styles = StyleSheet.create({
   trustRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, flexWrap: 'wrap' },
   trustBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(22,163,74,0.08)', paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: 'rgba(22,163,74,0.2)' },
   trustText: { ...typography.labelSmall, color: colors.success, fontWeight: '600' },
+  errorText: { ...typography.bodySmall, color: colors.error, textAlign: 'center', marginTop: spacing.md },
   bottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: colors.surface, paddingTop: spacing.md, paddingHorizontal: spacing.lg, borderTopWidth: 1, borderTopColor: colors.cardBorderLight, shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 12 },
   payBtn: { backgroundColor: colors.success, paddingVertical: spacing.md, borderRadius: borderRadius.full, alignItems: 'center', marginBottom: spacing.sm },
   processingRow: { flexDirection: 'row', alignItems: 'center' },
   payBtnText: { ...typography.button, color: colors.textOnPrimary, fontSize: 16 },
   termsNote: { ...typography.labelSmall, color: colors.textMuted, textAlign: 'center' },
-  // Success
   successContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
   successIcon: { width: 104, height: 104, borderRadius: 52, backgroundColor: 'rgba(22,163,74,0.10)', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl, borderWidth: 2, borderColor: 'rgba(22,163,74,0.25)' },
   successTitle: { ...typography.displayMedium, color: colors.success, marginBottom: spacing.md, textAlign: 'center' },
-  successSubtitle: { ...typography.bodyMedium, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.xl, lineHeight: 22 },
-  successCard: { width: '100%', backgroundColor: colors.surface, borderRadius: borderRadius.xl, padding: spacing.lg, borderWidth: 1, borderColor: colors.cardBorder, marginBottom: spacing.xl },
-  successCardTitle: { ...typography.titleMedium, color: colors.textPrimary, marginBottom: spacing.md },
-  successRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
-  successLabel: { ...typography.bodySmall, color: colors.textMuted },
-  successValue: { ...typography.bodySmall, color: colors.textPrimary, fontWeight: '600', flex: 1, textAlign: 'right' },
+  successSubtitle: { ...typography.bodyMedium, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.md, lineHeight: 22 },
+  bookingRef: { ...typography.titleMedium, color: colors.textPrimary, marginBottom: spacing.xl },
   successBtns: { flexDirection: 'row', gap: spacing.md, width: '100%' },
   homeBtn: { flex: 1, backgroundColor: colors.surface, paddingVertical: spacing.md, borderRadius: borderRadius.full, alignItems: 'center', borderWidth: 1.5, borderColor: colors.cardBorderLight },
   homeBtnText: { ...typography.button, color: colors.textPrimary },

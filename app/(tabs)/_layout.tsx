@@ -55,10 +55,17 @@ export default function TabLayout() {
         name="puja"
         options={{ title: 'Puja', tabBarIcon: tabIcon('flame', 'flame-outline') }}
       />
-      <Tabs.Screen
-        name="samagri"
-        options={{ title: 'Samagri', tabBarIcon: tabIcon('basket', 'basket-outline') }}
-      />
+      {/*
+        Samagri flow temporarily hidden (not deleted). The screen still exists
+        in the codebase; `href: null` removes it from the tab bar and makes the
+        route unreachable. To re-enable, restore the Tabs.Screen below:
+
+        <Tabs.Screen
+          name="samagri"
+          options={{ title: 'Samagri', tabBarIcon: tabIcon('basket', 'basket-outline') }}
+        />
+      */}
+      <Tabs.Screen name="samagri" options={{ href: null }} />
     </Tabs>
   );
 }
