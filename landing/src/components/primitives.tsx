@@ -76,7 +76,7 @@ export function CountUp({ value, suffix = '', duration = 1600 }: { value: number
 /* ── App Store / Play Store buttons ── */
 export function StoreButtons({ center = false }: { center?: boolean }) {
   return (
-    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: center ? 'center' : 'flex-start' }}>
+    <div className={`store-row ${center ? 'center' : ''}`}>
       <motion.a
         href="#" aria-label="Download on the App Store" className="store glass"
         whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.97 }}
