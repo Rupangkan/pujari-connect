@@ -1,7 +1,11 @@
+// Load env FIRST — controllers read process.env at import time and fail closed without it.
+import 'dotenv/config';
+
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { errorHandler } from './middleware/error.middleware';
 import authRoutes from './routes/auth.routes';
@@ -12,15 +16,29 @@ import samagriRoutes from './routes/samagri.routes';
 import userRoutes from './routes/user.routes';
 import adminRoutes from './routes/admin.routes';
 
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3001;
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-// ─── Middleware ──────────────────────────────────────────────────────────────
-app.use(cors({ origin: '*' }));
-app.use(express.json());
-app.use(morgan('dev'));
+// Behind a reverse proxy in prod so rate-limit sees the real client IP.
+if (IS_PROD) app.set('trust proxy', 1);
+
+// ─── Security middleware ─────────────────────────────────────────────────────
+app.use(helmet());
+
+// Lock CORS to known origins in prod; permissive only in dev.
+const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').map((s) => s.trim()).filter(Boolean);
+app.use(cors({
+  origin: IS_PROD ? (allowedOrigins.length ? allowedOrigins : false) : '*',
+}));
+
+app.use(express.json({ limit: '100kb' }));
+app.use(morgan(IS_PROD ? 'combined' : 'dev'));
+
+// Global + stricter auth rate limits.
+app.use(rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false }));
+app.use('/api/auth', rateLimit({ windowMs: 60_000, max: 6, standardHeaders: true, legacyHeaders: false }));
+app.use('/api/admin/login', rateLimit({ windowMs: 60_000, max: 5, standardHeaders: true, legacyHeaders: false }));
 
 // ─── Health Check ────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {

@@ -29,13 +29,14 @@ export default function Navbar() {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
-          {/* liquid-glass sheen sweep */}
-          <motion.span
-            className="nav-sheen"
-            aria-hidden
-            animate={{ x: ['-130%', '230%'] }}
-            transition={{ duration: 5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
-          />
+          {/* liquid-glass sheen sweep (clipped to the pill, content stays unclipped) */}
+          <span className="nav-sheen-clip" aria-hidden>
+            <motion.span
+              className="nav-sheen"
+              animate={{ x: ['-130%', '230%'] }}
+              transition={{ duration: 5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
+            />
+          </span>
 
           <a href="#top" className="brand nav-z" aria-label="Pujari Connect home">
             <span className="brand-mark"><Diya width={20} height={20} /></span>

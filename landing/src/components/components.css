@@ -1,23 +1,25 @@
 /* ─────────── Navbar (floating liquid-glass island) ─────────── */
 .nav-bar { position: sticky; top: 0; z-index: 50; padding-top: 14px; }
 .nav-island {
-  position: relative; display: flex; align-items: center; justify-content: space-between;
-  height: 62px; padding: 0 12px 0 18px; border-radius: 999px; overflow: hidden;
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  height: 60px; padding: 0 8px 0 20px; border-radius: 999px;
   background: rgba(58, 14, 24, 0.32);
   transition: height .3s ease, background .3s ease, box-shadow .3s ease;
 }
-.nav-island.scrolled { height: 56px; background: rgba(50, 12, 20, 0.55); box-shadow: 0 20px 44px -18px rgba(40, 6, 14, 0.65), var(--glass-hi); }
-.nav-sheen { position: absolute; top: 0; bottom: 0; left: 0; width: 38%; z-index: 0; pointer-events: none; transform: skewX(-18deg); background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22) 50%, transparent); }
+.nav-island.scrolled { height: 54px; background: rgba(50, 12, 20, 0.55); box-shadow: 0 20px 44px -18px rgba(40, 6, 14, 0.65), var(--glass-hi); }
+.nav-sheen-clip { position: absolute; inset: 0; border-radius: 999px; overflow: hidden; z-index: 0; pointer-events: none; }
+.nav-sheen { position: absolute; top: 0; bottom: 0; left: 0; width: 38%; transform: skewX(-18deg); background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22) 50%, transparent); }
 .nav-z { position: relative; z-index: 1; }
-.brand { display: flex; align-items: center; gap: 11px; }
-.brand-mark { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; color: #fff; background: linear-gradient(140deg, var(--marigold), var(--saffron)); box-shadow: 0 8px 18px -8px rgba(255,122,26,0.7); }
-.brand-text { font-family: var(--serif); font-weight: 700; font-size: 19px; color: #fff; }
+.brand { display: flex; align-items: center; gap: 11px; flex-shrink: 0; }
+.brand-mark { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: linear-gradient(140deg, var(--marigold), var(--saffron)); box-shadow: 0 8px 18px -8px rgba(255,122,26,0.7); }
+.brand-text { font-family: var(--serif); font-weight: 700; font-size: 19px; color: #fff; white-space: nowrap; }
 .brand-text b { color: var(--marigold); font-weight: 700; }
 .nav-links { display: flex; align-items: center; gap: 28px; }
 .nav-links a { font-size: 15px; font-weight: 600; color: rgba(255,247,234,0.82); transition: color .15s; }
 .nav-links a:hover { color: #fff; }
-.nav-cta { display: flex; align-items: center; gap: 12px; }
-.nav-get { padding: 9px 18px; font-size: 14px; }
+.nav-cta { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+/* higher specificity than .btn so size/visibility always win regardless of CSS order */
+.nav-cta .nav-get { padding: 9px 18px; font-size: 14px; white-space: nowrap; box-shadow: 0 6px 16px -8px rgba(255,122,26,0.5); }
 .nav-burger { display: none; color: #fff; padding: 8px; }
 .nav-mobile-wrap { position: relative; z-index: 49; }
 .nav-mobile { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; padding: 18px 20px; border-radius: 20px; }
@@ -98,12 +100,13 @@
 .scr-pill { font-size: 11px; font-weight: 700; padding: 7px 13px; border-radius: 999px; background: #fff; border: 1px solid rgba(201,154,62,0.22); color: #5b4a3b; }
 .scr-pill.on { background: var(--saffron); color: #fff; border-color: var(--saffron); }
 
-.scr-tabs { margin-top: auto; display: flex; justify-content: space-around; align-items: center; padding: 10px 6px calc(10px + env(safe-area-inset-bottom)); margin: 16px -14px 0; background: #fff; border-top: 1px solid rgba(201,154,62,0.2); }
+.scr-tabs { display: flex; justify-content: space-around; align-items: center; padding: 12px 6px 14px; margin: auto -14px 0; background: #fff; border-top: 1px solid rgba(201,154,62,0.2); }
 .scr-tab { display: flex; flex-direction: column; align-items: center; gap: 3px; color: #b3a392; }
 .scr-tab i { font-style: normal; font-size: 10px; font-weight: 700; }
 .scr-tab.on { color: var(--saffron); }
 
-/* floating chips */
+/* floating chips — dark frosted glass so white text reads on the light phone screen too */
+.float-chip.glass { background: rgba(38, 8, 16, 0.62); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: 0 18px 38px -16px rgba(0, 0, 0, 0.6); }
 .float-chip { position: absolute; display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-radius: 16px; z-index: 7; color: #fff; }
 .float-chip b { font-size: 13px; display: block; }
 .float-chip small { font-size: 11px; opacity: .82; }
@@ -193,7 +196,8 @@
 }
 /* Collapse nav to a burger before brand + button can collide */
 @media (max-width: 860px) {
-  .nav-links, .nav-get { display: none; }
+  .nav-links { display: none; }
+  .nav-cta .nav-get { display: none; }
   .nav-burger { display: inline-flex; }
 }
 

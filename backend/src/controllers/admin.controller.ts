@@ -1,13 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { timingSafeEqual } from 'crypto';
 import { resources, getResource, ResourceDef } from '../admin/resources';
 
 const prisma = new PrismaClient();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pujari-connect-secret-key-change-in-production';
+function requireEnv(key: string): string {
+  const v = process.env[key];
+  if (!v) throw new Error(`${key} is not set. Refusing to start with an insecure default.`);
+  return v;
+}
+
+const JWT_SECRET = requireEnv('JWT_SECRET');
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
+
+/** Constant-time string compare to avoid leaking the username via timing. */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
 
 /** Access a Prisma model delegate by its registry name. */
 function delegate(model: string): any {
@@ -100,9 +116,14 @@ function handleWriteError(err: any, res: Response, next: NextFunction) {
 // ─── Auth ──────────────────────────────────────────────────────────────────
 
 /** POST /api/admin/login */
-export const adminLogin = (req: Request, res: Response) => {
+export const adminLogin = async (req: Request, res: Response) => {
   const { username, password } = req.body || {};
-  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+  if (!ADMIN_PASSWORD_HASH) {
+    return res.status(503).json({ success: false, message: 'Admin login is not configured.' });
+  }
+  const userOk = typeof username === 'string' && safeEqual(username, ADMIN_USERNAME);
+  const passOk = typeof password === 'string' && (await bcrypt.compare(password, ADMIN_PASSWORD_HASH));
+  if (!userOk || !passOk) {
     return res.status(401).json({ success: false, message: 'Invalid username or password' });
   }
   const token = jwt.sign({ userId: 'admin', role: 'ADMIN' }, JWT_SECRET, { expiresIn: '1d' });

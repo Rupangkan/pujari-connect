@@ -6,11 +6,27 @@ const prisma = new PrismaClient();
 
 export const updateProfile = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
+    const userId = req.user!.userId;
+    // Whitelist only. `role`, `phoneNumber`, `googleId`, `id` can never be set here.
     const { name, email, dateOfBirth, gender, profilePicUrl } = req.body;
-    const user = await prisma.user.update({
-      where: { id: req.user!.userId },
-      data: { name, email, dateOfBirth, gender, profilePicUrl },
-    });
+
+    // Email is not ownership-verified, so block claiming an address another account uses.
+    // (Proper fix: send a verification link before persisting a new email.)
+    if (email) {
+      const clash = await prisma.user.findFirst({ where: { email, NOT: { id: userId } } });
+      if (clash) {
+        return res.status(409).json({ success: false, message: 'Email already in use.' });
+      }
+    }
+
+    const data: Record<string, unknown> = {};
+    if (name !== undefined) data.name = name;
+    if (email !== undefined) data.email = email;
+    if (dateOfBirth !== undefined) data.dateOfBirth = dateOfBirth;
+    if (gender !== undefined) data.gender = gender;
+    if (profilePicUrl !== undefined) data.profilePicUrl = profilePicUrl;
+
+    const user = await prisma.user.update({ where: { id: userId }, data });
     res.json({ success: true, data: user });
   } catch (err) { next(err); }
 };

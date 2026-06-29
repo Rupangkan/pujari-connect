@@ -1,8 +1,14 @@
 import jwt from 'jsonwebtoken';
 import type { JwtPayload, PaginationParams, PaginatedResponse } from '../types/index.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pujari-connect-secret-key-change-in-production';
-const JWT_EXPIRY = '30d';
+function requireEnv(key: string): string {
+  const v = process.env[key];
+  if (!v) throw new Error(`${key} is not set. Refusing to start with an insecure default.`);
+  return v;
+}
+
+const JWT_SECRET = requireEnv('JWT_SECRET');
+const JWT_EXPIRY = '7d';
 
 /**
  * Sign a JWT token with user payload
